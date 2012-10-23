@@ -1,0 +1,12 @@
+The readDepth package for R can detect copy number aberrations by measuring the depth of coverage obtained by massively parallel sequencing of the genome. It achieves higher accuracy than many other packages, and runs much faster by utilizing multi-core architectures to parallelize the processing of these large data sets.
+
+In contrast to other published methods, readDepth does not require the sequencing of a reference sample, and uses a robust statistical model that accounts for overdispersed data. It includes a method for effectively increasing the resolution obtained from low-coverage experiments by utilizing breakpoint information from paired end sequencing to do positional refinement. It can also be used to infer copy number using reads obtained from bisulfite sequencing experiments.
+
+This project is currently being updated and migrated from Google Code (http://code.google.com/p/readdepth/). The stable version is still hosted there for the moment.
+
+
+To build a package from the checkout:
+R CMD build readDepth
+
+To install it:
+R CMD INSTALL readDepth_<version>.tar.gz

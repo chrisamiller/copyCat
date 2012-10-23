@@ -1,0 +1,11 @@
+Package: readDepth
+Title: Find regions of genomic copy number loss and gain from short reads
+Version: 1.3.1
+Author: Chris Miller
+Description: Uses the depth of short reads in windows across the genome to 
+	     identify regions of genomic copy-number gain and loss
+Maintainer: Chris Miller <chrisamiller@gmail.com>
+LazyLoad: yes
+License: Apache License 2.0 | file LICENSE
+Depends: methods, foreach, doMC, IRanges, DNAcopy
+Packaged: 2010-12-17 15:11:24 UTC; camiller
