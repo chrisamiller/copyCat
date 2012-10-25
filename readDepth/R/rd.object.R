@@ -18,7 +18,7 @@ initRdClass <- function(){
             .Object@entrypoints=addMapability(.Object@entrypoints,.Object@params$annotationDirectory)
             
             ##only model bins if binSize isn't specified
-            if (is.na(.Object@params$outputBinSize)){
+            if (is.na(.Object@params$binSize)){
               
               if (.Object@params$inputType == "bed"){ 
                 verifyFiles(.Object@entrypoints$chr,.Object@params)
@@ -145,9 +145,7 @@ readParameters <- function(){
         (name == "chunkSize") |
         (name == "maxCores") |
         (name == "readCores") |
-        (name == "inputBinSize") |
-        (name == "outputBinSize")){
-
+        (name == "binSize")){
       val = as.numeric(as.character(getParam(params,name)))
       params = putParam(params,name,val)
     } else {
@@ -173,12 +171,11 @@ readParameters <- function(){
   ##params required for window input
   if(params$inputType == "bins"){
     checkParam("binFile")
-    checkParam("inputBinSize")
-    checkParam("outputBinSize")
+    checkParam("binSize")
   ##params required for bam input
   } else if(params$inputType == "bam"){
     checkParam("bamFile")
-    if (!(is.na(params$inputBinSize))){
+    if (!(is.na(params$binSize))){
       checkParam("fdr")
       checkParam("overDispersion")
       checkParam("percCNGain")
@@ -187,7 +184,7 @@ readParameters <- function(){
   ##params required for bed input
   } else if(params$inputType == "bed"){
     checkParam("bedDirectory")
-    if (!(is.na(params$outputBinSize))){
+    if (!(is.na(params$binSize))){
       checkParam("fdr")
       checkParam("overDispersion")
       checkParam("percCNGain")

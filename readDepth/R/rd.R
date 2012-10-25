@@ -17,7 +17,7 @@ readDepth <- function(rdo){
     rdo@params$binFile = paste(rdo@params$outputDirectory, "/bins.dat", sep="")
     getLibsFromBam(rdo@params)
 
-    cmd = paste("/gscuser/cmiller/usr/src/bamwindow-v0.3/bam-window -q 1 -w ", rdo@params$inputBinSize, " -s ", sep="")
+    cmd = paste("/gscuser/cmiller/usr/src/bamwindow-v0.3/bam-window -q 1 -w ", rdo@params$binSize, " -s ", sep="")
     if(rdo@params$perLib){
       cmd = paste(cmd,"-r ", rdo@params$outputDirectory, "/bamlibs ", sep="");
     }
@@ -236,8 +236,11 @@ binParamsFromBins <- function(rdo){
   }
   ##else, we need to add up the bins with "rd." prefixes indicating reads
   if(!(foundrd)){
-    print("error: you must merge your libraries before calculating params - no changes made")
-    return(rdo@binParams);
+    for(i in 1:length(names(rdo@chrs))){
+      if(grepl("^rd.",names(rdo@chrs)[i])){
+        bins = append(bins,rdo@chrs[[names(rdo@chrs)[i]]]$rd)
+      }
+    }
   }
   
   numReads = sum(bins)
