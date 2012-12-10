@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#auto update the build time
+grep -v "^Packaged:" readDepth/DESCRIPTION >zz
+mv -f zz readDepth/DESCRIPTION
+thedate=`date +"%F %r"`;
+echo "Packaged: $thedate; cmiller" >>readDepth/DESCRIPTION
+
+version=$(grep "Version" readDepth/DESCRIPTION | awk '{print $2}')
+
+R CMD build readDepth && R CMD INSTALL readDepth_$version.tar.gz
