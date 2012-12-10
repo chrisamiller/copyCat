@@ -15,8 +15,8 @@ library('doMC')
 ##-------------------------------------------------
 ## read in entrypoints file, return a data frame
 ##
-readEntrypoints <- function(annoDir){
-  p=read.table(paste(annoDir,"/entrypoints",sep=""), sep="\t", quote="",
+readEntrypoints <- function(annoDir,sex="male"){
+  p=read.table(paste(annoDir,"/entrypoints.",sex,sep=""), sep="\t", quote="",
     colClasses=c("character","numeric","numeric"))
   names(p)=c("chr","length","ploidy")  
   return(p)
@@ -24,40 +24,20 @@ readEntrypoints <- function(annoDir){
 
 
 ##--------------------------------------------------
-##  Do a wc on each read file to find out how many reads there 
-##  are. This is way faster than counting with R. Eventually,
-##  we can write a little C function to do this so we don't  
-##  require a shell with wc installed (allow windows port)
+## get the number of reads in the bam file from samtools flagstat
 ##
-getReadInfo <- function(params, entrypoints){
-  
-  ## check to see if they've already been counted
-  lenFileName=paste(params$readDirectory,"/readInfo",sep="")
-  len = 0
-  
-  if(file.exists(lenFileName)){
-    flist = read.table(lenFileName)
-    names(flist) = c("len","file")
-  } else {
-    
-    ##count up rads in each bed file
-    if(params$inputType == "bed"){
-      lenList = foreach(e=Sys.glob(paste(params$bedDirectory,"/*.bed"),sep=""), .combine="append") %do%{
-        strsplit(system(paste('wc -l ', e, sep=""), intern=T),"[[:space:]]")[[1]]
-      }
-      flist = data.frame(len=as.numeric(lenList[seq(1,length(lenList)-1,2)]), file=lenList[seq(2,length(lenList),2)])
-      
-    ##count reads from single bam, keep those that match our entrypoints
-    } else if(params$inputType == "bam"){        
-      a = read.table(pipe(paste("samtools view -c -q 1 ", params$bamFile," | cut -f 3 | sort | uniq -c")))
-      valid = which(a %in% entrypoints$chr)
-      flist = data.frame(len=a[valid,1],file=a[valid,V2])
-    }
-    write.table(flist,file=lenFileName,sep="\t",quote=FALSE, row.names=FALSE, col.names=FALSE)
-
-  }  
-  return(flist)
+getNumReads <- function(inputFile,outputDirectory){
+  ##first check to see if a flagstat exists next to the bam
+  flagstat = paste(inputFile,".flagstat",sep="")
+  ##if not, run flagstat
+  if(!(file.exists(flagstat))){
+    print("running samtools flagstat to get read counts")
+    system(paste("samtools flagstat ",inputFile," >",outputDirectory,"/flagstat",sep=""));
+    flagstat = paste(outputDirectory,"/flagstat",sep="")
+  }
+  return(strsplit(readLines(flagstat)[5], " ")[[1]][1])
 }
+
 
 
 ##--------------------------------------------------
@@ -196,8 +176,8 @@ mergeLibraries <- function(rdo){
     libNames = names(rdo@chrs[[1]])[grep("^rd.",names(rdo@chrs[[1]]))]
     tmp = rdo@chrs[[chr]][[libNames[1]]];
 
-    if(rdo@params$numLibs > 1){
-      for(i in 2:rdo@params$numLibs){
+    if(rdo@binParams$numLibs > 1){
+      for(i in 2:rdo@binParams$numLibs){
         name=libNames[i]
         tmp = tmp + rdo@chrs[[chr]][[name]];
       }
@@ -271,195 +251,6 @@ makedf <-function(binList,params){
 }
 
 
-##----------------------------------------------
-## given a set of parameters, plot the peaks
-## and thresholds
-##
-plotWindows <- function(windowSize, genomeSize, divGain, divLoss, fdr, numReads, oDisp, ploidyPerc, med){
-  numWinds <- genomeSize/windowSize
-  
-  ##generate distributions
-  d2 <- rpois.od(numWinds*ploidyPerc$diploidPerc,med,oDisp)
-  d3 <- rpois.od(numWinds*ploidyPerc$triploidPerc,(med*1.5),oDisp)
-  d1 <- rpois.od(numWinds*ploidyPerc$haploidPerc,(med*0.5),oDisp)
-
-  hrange=10*sqrt(med*oDisp)
-  hist(d2,breaks=seq(-100000,100000,20),xlim=c(med-hrange,med+hrange),main=paste("Window Size: ",windowSize,sep=""))
-  mtext(paste("FDR: ",round(fdr,5),sep=""))
-  hist(d3,breaks=seq(-100000,100000,20),add=T,col="red")
-  hist(d1,breaks=seq(-100000,100000,20),add=T,col="red")
-  abline(v=med,col="blue")
-  abline(v=med*(0.5),col="blue")
-  abline(v=med*(1.5),col="blue")
-  abline(v=divGain,col="green")
-  abline(v=divLoss,col="green")
-}
-
-##----------------------------------------------
-## plot the segments for a given chromosome
-##
-plotSegs <- function(rdo,segs,chr){
-
-  st = 1
-  sp = rdo@entrypoints[which(rdo@entrypoints$chr == chr),]$length
-  
-  winds = rdo@chrs[[chr]]$rd
-  #print(winds)
-  binSize = rdo@binParams$binSize  
-  pos = seq(binSize/2,(((length(winds)-1)*binSize)-binSize/2),binSize)
-  pos = append(pos,sp)
-  
-  par(mar=c(5, 4, 4, 4) + 0.1)
-  plot(pos,winds,ylab="number of reads", xlab="position (bp)")
-
-  abline(h=rdo@binParams$med,col="blue")
-  abline(h=rdo@binParams$gainThresh,col="green")
-  abline(h=rdo@binParams$lossThresh,col="green")
-
-  asegs = segs[which(segs$chrom == chr),]
-  for(i in 1:length(asegs[,1])){
-    lines(c(asegs[i,2],asegs[i,3]), c(asegs[i,5],asegs[i,5]), col="red",lwd=3)
-  }
-  
-  par(new=T)
-  plot(-10000,-10000,ylim=c(0,(max(winds,na.rm=TRUE)/rdo@binParams$med)), xlim=c(1,sp),axes=F,xlab="", ylab="")
-  axis(4, ylim=c(0,max(winds,na.rm=TRUE)/rdo@binParams$med), col="red",col.axis="red")
-  mtext("Copy Number",side=4,col="red",line=2.5)
-
-}
-
-
-##--------------------------------------------------
-## plot overlapping histograms
-##
-plotOverlappingHist <- function(a, b, colors=c("white","gray20","gray50"),
-                                breaks=NULL, xlim=NULL, ylim=NULL){
-  
-  ahist=NULL
-  bhist=NULL
-
-  if(!(is.null(breaks))){
-    ahist=hist(a,breaks=breaks,plot=F)
-    bhist=hist(b,breaks=breaks,plot=F)
-  } else {
-    ahist=hist(a,plot=F)
-    bhist=hist(b,plot=F)
-
-    dist = ahist$breaks[2]-ahist$breaks[1]
-    breaks = seq(min(ahist$breaks,bhist$breaks),max(ahist$breaks,bhist$breaks),dist)
-
-    ahist=hist(a,breaks=breaks,plot=F)
-    bhist=hist(b,breaks=breaks,plot=F)
-  }
-
-  if(is.null(xlim)){
-    xlim = c(min(ahist$breaks,bhist$breaks),max(ahist$breaks,bhist$breaks))
-  }
-
-  if(is.null(ylim)){
-    ylim = c(0,max(ahist$counts,bhist$counts))
-  }
-
-  overlap = ahist
-  for(i in 1:length(overlap$counts)){
-    if(ahist$counts[i] > 0 & bhist$counts[i] > 0){
-      overlap$counts[i] = min(ahist$counts[i],bhist$counts[i])
-    } else {
-      overlap$counts[i] = 0
-    }
-  }
-
-  plot(ahist, xlim=xlim, ylim=ylim, col=colors[1])
-  plot(bhist, xlim=xlim, ylim=ylim, col=colors[2], add=T)
-  plot(overlap, xlim=xlim, ylim=ylim, col=colors[3], add=T)
-}
-
-
-##--------------------------------------------------
-## plot actual and expected histograms
-##
-plotDist <- function(rdo,xmax=NULL,filename="output/hist.pdf",windSize=NULL){
-
-  bins=c()
-  for(i in 1:length(names(rdo@chrs))){
-    bins = append(bins,rdo@chrs[[names(rdo@chrs)[i]]]$rd)
-  }
-
-  if(is.null(xmax)){
-    xmax=rdo@binParams$gainThresh*2 ##max(bins,na.rm=TRUE) ##sort(bins[round(length(bins)*0.999)])
-  }
-  
-  if(is.null(windSize)){
-    windSize = round(xmax/100)
-  }
-
-  len=length(bins)
-  e=rdo@entrypoints
-  breaks=seq(0,xmax+windSize,windSize)
-  oDisp=rdo@params$overDispersion
-
-  med=rdo@binParams$med 
-
-  p1 = rpois.od(len*rdo@binParams$hapPerc,med/2,oDisp)
-  p2=rpois.od(len*rdo@binParams$dipPerc,med,oDisp)
-  p3 = rpois.od(len*rdo@binParams$tripPerc,(med*(3/2)),oDisp)
-  
-  p=append(append(p1,p2),p3)
-
-  bins = bins[which(bins<xmax & bins>0)]
-  p = p[which(p<xmax & p>0)]
-
-  pdf(file=filename)
-  plotOverlappingHist(a=bins,b=p,breaks=breaks,xlim=c(0,xmax))
-  abline(v=rdo@binParams$gainThresh,col="red")
-  abline(v=rdo@binParams$lossThresh,col="red")
-  dev.off()
-}
-
-
-##--------------------------------------------------
-## plot three actual and expected histograms 
-## usually used with raw read depth, post mapability
-## correction, and post gc content correction
-##
-tripDist <- function(xmax=NULL,filename="output/hist.pdf",windSize=20, rdo2, rdo3, rdo4){
-  pdf(file=filename, width=12,height=4)
-  par(mfcol=c(1,3))
-  
-  for(rdo in c(rdo2,rdo3,rdo4)){
-    bins=c()
-    for(i in 1:length(names(rdo@chrs))){
-      bins = append(bins,rdo@chrs[[names(rdo@chrs)[i]]]$rd)
-    }
-
-    if(is.null(xmax)){
-      xmax=rdo2@binParams$gainThresh*2 ##max(bins,na.rm=TRUE) ##bins[round(length(bins)*0.999)]
-    }
-    len=length(bins)
-    e=rdo@entrypoints
-    breaks=seq(0,xmax,windSize)
-    oDisp=rdo@params$overDispersion
-    
-    med=rdo@binParams$med
-    
-    p1 = rpois.od(len*rdo@binParams$hapPerc,med/2,oDisp)
-    p2=rpois.od(len*rdo@binParams$dipPerc,med,oDisp)
-    p3 = rpois.od(len*rdo@binParams$tripPerc,(med*(3/2)),oDisp)
-    
-    p=append(append(p1,p2),p3)
-    
-    bins = bins[which(bins<xmax & bins>0)]
-    p = p[which(p<xmax & p>0)]    
-
-    plotOverlappingHist(a=bins,b=p,breaks=breaks)
-    abline(v=rdo@binParams$gainThresh,col="red")
-    abline(v=rdo@binParams$lossThresh,col="red")
-  }
-
-  dev.off()
-}
-
-
 ##-----------------------------------------------------------
 ## some simple output functions
 ##
@@ -506,12 +297,12 @@ writeThresholds <- function(rdo){
   write.table(t(cbind(a1,a2,a3)),file=paste(rdo@params$outputDirectory,"/thresholds.dat",sep=""),sep="\t",quote=F,row.names=T,col.names=F)
 }
 
-writeSegs <- function(segs,rdo){
-  write.table(segs, file=paste(rdo@params$outputDirectory,"/segs.dat",sep=""), sep="\t", quote=F, row.names=F, col.names=F)
+writeSegs <- function(segs,rdo,filename="segs.dat"){
+  write.table(segs, file=paste(rdo@params$outputDirectory,"/",filename,sep=""), sep="\t", quote=F, row.names=F, col.names=F)
 }
 
-writeAlts <- function(segs,rdo){
-  write.table(getAlts(segs,rdo), file=paste(rdo@params$outputDirectory,"/alts.dat",sep=""), sep="\t", quote=F, row.names=F, col.names=F)
+writeAlts <- function(segs,rdo,filename="alts.dat"){
+  write.table(getAlts(segs,rdo), file=paste(rdo@params$outputDirectory,"/",filename,sep=""), sep="\t", quote=F, row.names=F, col.names=F)
 }
 
 
@@ -577,6 +368,8 @@ estimateOd <- function(rdo, maxOd=30, histBreaks=10){
 ##------------------------------------------------------------
 ## Code for pulling down the annotation files from google code
 ## and sticking them in the right place
+
+##TODO - fix this to reflect new directory structure
 
 getAnnotations <- function(readLength, sex, genome="hg18", bs=FALSE, annoDir){
   if(sex!="male" & sex!="female" & sex!="autosomes"){
@@ -653,8 +446,6 @@ addObjectBins <- function(rdo,rdo2){
   }
   return(rdo);
 }
-
-
 
 
 
@@ -750,20 +541,21 @@ writeCnvhmmInput <- function(tum){
 }
 
 
+##-----------------------------------------------------------
+## Author: Kevin Wright
+## with some ideas from Andy Liaw
+## http://tolstoy.newcastle.edu.au/R/help/04/07/1076.html
+
+## x: A data.frame
+## by: A one-sided formula using + for ascending and - for descending
+##     Sorting is left to right in the formula
+
+## Useage is:
+## library(nlme);
+## data(Oats)
+## sort(Oats, by= ~nitro-Variety)
 
 sort.data.frame <- function(x, by){
-    # Author: Kevin Wright
-    # with some ideas from Andy Liaw
-    # http://tolstoy.newcastle.edu.au/R/help/04/07/1076.html
- 
-    # x: A data.frame
-    # by: A one-sided formula using + for ascending and - for descending
-    #     Sorting is left to right in the formula
-  
-    # Useage is:
-    # library(nlme);
-    # data(Oats)
-    # sort(Oats, by= ~nitro-Variety)
  
     if(by[[1]] != "~")
         stop("Argument 'by' must be a one-sided formula.")
@@ -802,196 +594,35 @@ sort.data.frame <- function(x, by){
     return(x[do.call("order", calllist), ])
 }
 
-
-
-
-calculateMedianFromDbsnpSites <- function(rdo, snpBinSize, peakWiggle=3, sites=NULL, plot=FALSE){
-  ## read in dbsnp het sites
-  if(is.null(sites)){
-    if(verbose){
-      print("reading in dbSNP het sites")
-    }
-    sites = read.table(rdo@params$dbSnpVaf)
-  }
-
-  sites = sites[which(((sites$V5 + sites$V6) <= 100) &
-    ((sites$V5 + sites$V6) >= 20) &
-    (sites$V7 > 15)),c(1,2,7)]
-
-  homsites = sites[which(sites$V7 > 85),]
-  hetsites = sites[which(sites$V7 < 85),]  
-
-
-  ##free up some memory
-  sites = NULL
-  gc()
-
-  
-  if(verbose){
-    print("finding clean windows of CN 2x, 3x, 4x")
-  }
-  
-  
-  doCalc <- function(rdo,snpBinSize,peakWiggle, chr, hetsites, homsites, plot){
-    chrLen = getChrLength(chr,rdo@entrypoints)
-    ## create an IRange for bins
-    bins <- IRanges(start = (0:(ceiling(chrLen/snpBinSize)-1)*snpBinSize)+1, end = (1:ceiling(chrLen/snpBinSize))*snpBinSize)
-    end(bins[length(bins)]) <- chrLen
-        
-    ##create IRange for dbsnp vafs
-    homIsites = IRanges(start=homsites$V2, end=homsites$V2)
-    hetIsites = IRanges(start=hetsites$V2, end=hetsites$V2)
-
-    ##figure out which reads fall in which bins
-    hetBinnedSites <- as.matrix(findOverlaps(bins,hetIsites))
-    homBinnedSites <- as.matrix(findOverlaps(bins,homIsites))
-
-    
-    ##grab the VAFs, find the peaks, make the call  
-    findPeaks <- function(series,span=3){ 
-      z <- embed(series, span) 
-      s <- span%/%2 
-      v<- max.col(z) == 1 + s 
-      result <- c(rep(FALSE,s),v) 
-      result <- result[1:(length(result)-s)] 
-      result 
-    }
-    
-    sts = c()
-    sps = c()
-    ploidy = c()    
-    reads = c()
-
-
-
-    if(plot){
-      pdf(file=paste("vafplots/vafs.",chr,".pdf",sep=""))
-    }
-
-
-    for(i in 1:length(bins)){
-
-      #if we have sites to look at
-      if(length(hetsites[which(hetBinnedSites[,1]==i),]$V7) > 0){
-
-        ##exclude sites that look 1x (low het to homo ratio)
-        hetcount = length(hetsites[which(hetBinnedSites[,1]==i),1])
-        homcount = length(homsites[which(homBinnedSites[,1]==i),1])
-
-        if(hetcount/homcount < 0.75){          
-          cn = NULL
-        } else {
-          den=(density(hetsites[which(hetBinnedSites[,1]==i),]$V7, bw=3))
-          peaks=den$x[findPeaks(den$y)]
-          peakHeight=den$y[findPeaks(den$y)]
-
-          #filter out low, probably false peaks
-          peaks = peaks[which(peakHeight > 0.01)]
-          
-          if(plot){          
-            plot(den, col="blue", main=paste(i," - ",peaks),xlim=c(0,100))
-            abline(v=peaks)
-            for(p in peaks){
-              text(p+2,0,labels=round(p))
-            }
-          }
-          
-          ## remove low vaf noise and double peaks called by
-          ## strangeness in peak calling function
-          peaks = unique(sort(round(peaks[peaks>15])))
-          cn = NULL
-          
-          if ((length(peaks) == 1) &
-              (abs(peaks[1]-50) < peakWiggle)){
-            cn = 2
-            
-          }else if ((length(peaks) == 2) &
-                  (abs(peaks[1]-33.33) < peakWiggle) &
-                    (abs(peaks[2]-66.66) < peakWiggle)){
-            cn = 3
-            
-          } else if ((length(peaks) == 3) &
-                     (abs(peaks[1]-25) < peakWiggle) &
-                     (abs(peaks[2]-50) < peakWiggle) &
-                   (abs(peaks[2]-75) < peakWiggle)){
-            cn = 4
-          }
-          
-          ##store the valid sites for use
-          if(!(is.null(cn))){
-            
-            if(plot){
-              text(0,0,labels=paste("CN",cn))
-            }
-            
-            sts = c(sts,(i-1)*snpBinSize)
-            sps = c(sps,i*snpBinSize)
-            ploidy = c(ploidy,cn)
-          }
-        }
-      }
-    }
-      
-    if(plot){
-      dev.off()
-    }
-    
-    if(verbose){      
-      cat(paste("chr",chr," VAF anaylsis: \n  ",length(which(ploidy == 2))," 2x sites\n  ",length(which(ploidy == 3))," 3x sites\n  ",length(which(ploidy == 4))," 4x sites\n  ",length(bins)-length(ploidy)," sites ambiguous\n",sep=""))
-    }
-    
-    ##now grab all the reads and match them up, adjust readcounts by ploidy, put the readcounts into a big list
-    validWinds = IRanges(start=sts, end=sps)
-    ##get all the positions and readcounts for this chr
-    
-    df = makedf(rdo@chrs,rdo@params)
-    df = df[which(df$chr==chr),]
-    muts = IRanges(start=df$pos,end=df$pos+rdo@params$binSize)
-    
-    matches = as.matrix(findOverlaps(validWinds,muts))
-    
-    aReadDepths = c()
-    ##take the readcounts in each valid window, adjust for ploidy and add to the list
-    for(i in 1:length(validWinds)){      
-      reads = df[which(matches[,1]==i),3]
-      
-      ##adjust to diploid level, add to list
-      aReadDepths = c(aReadDepths, median(reads / (ploidy[i]/2)))
-    }
-    if(length(reads) == 0){      
-      return(NA)
-    }
-    #print("test1")
-    print(paste("mean:   ",mean(aReadDepths, na.rm=TRUE)))
-    print(paste("median: ",median(aReadDepths, na.rm=TRUE)))
-    return(aReadDepths)
-  }
-    
-
-  
-  ## find locations of 1MB windows that are
-  ## unambiguously 2x, 3x, 4x
-
-  ##this uses a ton of memory, so we're just going to use one core for now
-  options(cores = 1);
-  mcoptions <- list(preschedule = FALSE)
-  adjReadDepths = foreach(chr=rdo@entrypoints$chr, .combine="append",.options.multicore=mcoptions) %dopar% {
-    doCalc(rdo,snpBinSize,peakWiggle, chr, hetsites[which(hetsites$V1==chr),], homsites[which(homsites$V1==chr),], plot=plot)
-  }
-  ##restore cores for future use
-  options(cores = rdo@params$maxCores)
-  
-  #return the average of the adj readcounts
-  #print(adjReadDepths)
-  #print("test2")
-  #print(adjReadDepths)
-  print(mean(adjReadDepths, na.rm=TRUE))
-  pdf(file="vafplots/means.pdf")
-  hist(adjReadDepths,breaks=100,col="darkgreen")
-  abline(v=mean(adjReadDepths,na.rm=T),col="red")
-  abline(v=median(adjReadDepths,na.rm=T),col="blue")
-  dev.off()
-
-  #return(adjReadDepths)
-  return(mean(adjReadDepths, na.rm=TRUE));
+##-----------------------------------------------------------
+## pull out the subset of reads with a specific read length
+##
+subsetByReadLength <- function(rdo,length){  
+  ##get the names of columns with this read length
+  libs = rdo@readInfo[which(rdo@readInfo$readlength==length),]$lib
+  tmp=c();for(l in libs){tmp=c(tmp,paste("rd.",l,".",length,sep=""))}
+  libs = tmp;
+  cols=names(rdo@chrs[[1]]) %in% libs
+  #do the subset
+  for(i in names(rdo@chrs)){    
+    rdo@chrs[[i]] = rdo@chrs[[i]][cols]
+  }  
+  return(rdo)
 }
+
+
+
+##-----------------------------------------------------------
+## restore reads that have been corrected (in rdo2) back into rdo
+##
+replaceReadCounts <- function(rdo,rdo2){  
+  ##get the names of columns in rdo2
+  libs=names(rdo2@chrs[[1]])
+  for(i in 1:length(libs)){
+    for(chr in names(rdo@chrs)){    
+      rdo@chrs[[chr]][which(names(rdo@chrs[[1]]) %in% libs[i])] = rdo2@chrs[[chr]][i]
+    }
+  }
+  return(rdo)
+}
+

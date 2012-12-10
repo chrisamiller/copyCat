@@ -3,44 +3,103 @@ library('foreach')
 library('doMC')
 registerDoMC()
 library('IRanges')
-library('digest')
 
 ##-------------------------------------------------
-## Set up an object to hold the data, then fill
-## it when initialized
+## Set up an object to hold the data,
 ##
 initRdClass <- function(){
   setClass("rdObject", representation(params="data.frame", binParams="data.frame", entrypoints="data.frame", readInfo="data.frame", chrs="list"))
   setMethod("initialize", "rdObject",
           function(.Object){
-            .Object@params=readParameters()
-            .Object@entrypoints=readEntrypoints(.Object@params$annotationDirectory)
-            .Object@entrypoints=addMapability(.Object@entrypoints,.Object@params$annotationDirectory)
-            
-            ##only model bins if binSize isn't specified
-            if (is.na(.Object@params$binSize)){
-              
-              if (.Object@params$inputType == "bed"){ 
-                verifyFiles(.Object@entrypoints$chr,.Object@params)
-              }              
-              .Object@readInfo=getReadInfo(.Object@params, .Object@entrypoints)
-              .Object@binParams=binParams(.Object@params, .Object@entrypoints, .Object@readInfo)
-            }
-            
-            closeAllConnections()
+            .Object@params=data.frame()
+            .Object@binParams=data.frame()
+            .Object@entrypoints=data.frame()
+            .Object@readInfo=data.frame()
+            .Object@chrs=as.list(c())
             return(.Object)              
           })
 }
 
 ##-------------------------------------------------
+## Fill the rd object with the appropriate parameters
+##
+setParams <- function(rdo, annotationDirectory, outputDirectory, inputFile, inputType,
+                      maxCores=0, #0 means use all available cores
+                      binSize=0,  #0 means let readDepth choose (or infer from bins file)
+                      gcWindowSize=100, fdr=0.01, perLibrary=TRUE, perReadLength=TRUE, readLength=0){
+  #sanity checking
+  if(!(inputType=="bam" | inputType=="bins")){
+    print("inputType parameter must be either \"bam\" or \"bins\"")
+    stop()
+  }
+  if(!(file.exists(inputFile))){
+    print(paste("file \"",inputFile,"\" does not exist"))
+    stop()
+  }  
+  if(binSize==0){
+    if(inputType=="bins"){
+      print("If a bin file is provided, the binSize must be specified (and match the contents of the bin file)")
+      stop()
+    }
+  }
+  
+  #fill the params data frame
+  rdo@params <- data.frame(annotationDirectory=annotationDirectory,
+                           outputDirectory=outputDirectory,
+                           inputFile=inputFile,
+                           inputType=inputType,
+                           maxCores=maxCores,
+                           binSize=binSize,
+                           gcWindowSize=gcWindowSize,
+                           fdr=fdr,
+                           perLibrary=perLibrary,
+                           perReadLength=perReadLength,
+                           readLength=readLength
+                           )
+
+  if(inputType == "bins"){
+    rdo@params$binFile=inputFile
+  }
+  
+  ##fill entrypoints
+  rdo@entrypoints=readEntrypoints(rdo@params$annotationDirectory)
+  ## TODO - maybe only do this if we're estimating window size
+  rdo@entrypoints=addMapability(rdo@entrypoints,annotationDirectory)
+  
+  ##set multicore options if specified
+  if(maxCores > 0){
+    options(cores = maxCores)
+  }
+
+  #make sure the output directory exists, if not, create it
+  if(!(file.exists(outputDirectory))){
+    dir.create(outputDirectory)
+  }
+  #also create a subdirectory for plots
+  if(!(file.exists(paste(outputDirectory,"/plots",sep="")))){
+    dir.create(paste(outputDirectory,"/plots",sep=""))
+  }
+  
+  return(rdo)  
+}
+
+
+
+##-------------------------------------------------
 ## calculate the appropriate bin size,
 ## gain/loss thresholds, number of chromosomes, etc
 ##
-binParams <-function(params,entrypoints,readInfo){
 
-  ## count the total number of reads
-  numReads = getNumReads(readInfo)
-
+calculateBinSize <-function(rdo, overdispersion=3, percCnGain=0.05, percCnLoss=0.05){
+  params = rdo@params
+  entrypoints = rdo@entrypoints
+  
+  if(params$inputType != "bam"){
+    stop("optimal window size can only be calculated from bam input")
+  }
+   
+  numReads = getNumReads(params$inputFile,params$outputDirectory)
+  
   ## get genome size from entrypoints file, adjust by mappability estimates
   genomeSize = sum(entrypoints$length)
   mapPerc=sum(entrypoints$mapPerc*entrypoints$length)/sum(entrypoints$length)
@@ -107,117 +166,10 @@ binParams <-function(params,entrypoints,readInfo){
 ##   plotWindows(pTrip$binSize, effectiveGenomeSize, pHap$div, pTrip$div, params$fdr, numReads, params$overDispersion, ploidyPerc, med)
 ##   dev.off()
 
-  return(data.frame(binSize=binSize, lossThresh=pHap$div, gainThresh=pTrip$div, med=med, hapPerc=ploidyPerc$haploidPerc, dipPerc=ploidyPerc$diploidPerc, tripPerc=ploidyPerc$triploidPerc))
+  rdo@binParams=data.frame(binSize=binSize, lossThresh=pHap$div, gainThresh=pTrip$div, med=med, hapPerc=ploidyPerc$haploidPerc, dipPerc=ploidyPerc$diploidPerc, tripPerc=ploidyPerc$triploidPerc)
+
+  return(rdo)
 }
-
-
-
-##-------------------------------------------------
-## read the parameters from the params file
-##
-readParameters <- function(){
-  ## this gets a little complicated because we want a data
-  ## frame that stores both numbers and strings
-  if(!(exists("PARAMSFILE"))){
-    stop("PARAMSFILE not defined. Please define it before creating the object (PARAMSFILE <<- \"/path/to/paramsfile\")")
-  }
-  
-  params=as.data.frame(t(read.table(PARAMSFILE,row.names=1)))
-
-  ##now convert params to character or numeric, depending
-  getParam <- function(df, col){
-    return(as.character(df[col][,1]))
-  }
-  putParam <- function(df, col, val){
-    df[col][,1]=val
-    return(df)
-  }
-  for(i in 1:length(params[1,])){
-    name = names(params)[i]
-
-    ##these params need to be converted to numbers, the rest stay strings
-    if ((name == "readLength") |
-        (name == "fdr") |
-        (name == "overDispersion") |
-        (name == "gcWindowSize") |
-        (name == "percCNGain") |
-        (name == "percCNLoss") |
-        (name == "chunkSize") |
-        (name == "maxCores") |
-        (name == "readCores") |
-        (name == "binSize")){
-      val = as.numeric(as.character(getParam(params,name)))
-      params = putParam(params,name,val)
-    } else {
-      val = as.character(getParam(params,name))
-      params = putParam(params,name,val)
-    }
-    
-  }
-
-  checkParam <- function(param){
-    if(is.na(params[param])){
-      stop(paste("ERROR: requred parameter",param,"is missing from params file"))
-    }
-  }
-
-  ##these params always need to be here
-  checkParam("inputType")
-  checkParam("readLength")
-  checkParam("gcWindowSize")
-  checkParam("annotationDirectory")
-  checkParam("outputDirectory")
-
-  ##params required for window input
-  if(params$inputType == "bins"){
-    checkParam("binFile")
-    checkParam("binSize")
-  ##params required for bam input
-  } else if(params$inputType == "bam"){
-    checkParam("bamFile")
-    if (!(is.na(params$binSize))){
-      checkParam("fdr")
-      checkParam("overDispersion")
-      checkParam("percCNGain")
-      checkParam("percCNLoss")
-    }
-  ##params required for bed input
-  } else if(params$inputType == "bed"){
-    checkParam("bedDirectory")
-    if (!(is.na(params$binSize))){
-      checkParam("fdr")
-      checkParam("overDispersion")
-      checkParam("percCNGain")
-      checkParam("percCNLoss")
-    }
-  }
-
-  if (is.na(params$verbose)){
-    verbose <<- FALSE
-  } else {
-    #there's a better way to do this, but meh.
-    if (params$verbose == "1"){
-      verbose <<- TRUE
-    } else {
-      z = tolower(params$verbose)
-      if ((z == "true") |
-          (z == "t")){
-        verbose <<- TRUE           
-      }
-    }
-  }
-
-  ##set multicore options if specified
-  if(!(is.na(params$maxCores))){
-    options(cores = params$cores)
-  }
-
-  ## default value - may change later if we're using bins
-  ## as input
-  params$numLibs = 1;
-  return(params)
-}
-
 
 
 ##--------------------------------------------------
@@ -247,10 +199,10 @@ ploidyPercentages <- function(effectiveGenomeSize,ents,params){
 ## else, sum the lengths of the annotations, and
 ## create the cov total file
 ##
-addMapability <-function(entrypoints,annoDir){
+addMapability <-function(entrypoints, annoDir, readLength=100){
   ##first, we need the mappable regions
-  mapTotalFileName = paste(annoDir,"/mapability/totalMappablePerc",sep="")
-  mapDir = paste(annoDir,"/mapability/",sep="")
+  mapTotalFileName = paste(annoDir,"/readlength.",readLength,"/mapability/totalMappablePerc",sep="")
+  mapDir = paste(annoDir,"/readlength.",readLength,"/mapability/",sep="")
   mapTots = 0
   #default is 100% mapability
   entrypoints = cbind(entrypoints,mapPerc=rep(1,length(entrypoints$chr)))

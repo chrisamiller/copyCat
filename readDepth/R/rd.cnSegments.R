@@ -2,10 +2,10 @@
 ## Use circular binary segmentation to merge adjacent
 ## windows and identify breakpoints
 ##
-rd.cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=2,alpha=0.01,rmGaps=TRUE){ 
+rd.cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=2,alpha=0.01,undoSD=2,rmGaps=TRUE){ 
   library('DNAcopy')
   df = makedfLog(rdo@chrs,rdo@binParams)
-  return(getSegs(df,rdo@binParams,rdo@entrypoints,onlyAlts,minWidth,alpha,rmGaps))
+  return(getSegs(df,rdo@binParams,rdo@entrypoints,onlyAlts,minWidth,alpha,rmGaps,undoSD))
 }
 
 ##----------------------------------------------------
@@ -46,7 +46,7 @@ rd.paired.cnSegments <- function(nrm,tum,onlyAlts=FALSE,minWidth=2,alpha=0.01,rm
 ## run circular binary segmentation to identify discrete
 ## segments of gain and loss
 ##
-getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=2, alpha=0.01, rmGaps=TRUE){
+getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=2, alpha=0.01, rmGaps=TRUE, undoSD=2){
   CNA.object <-CNA( genomdat = gd2$score, chrom = gd2$chr, maploc =gd2$pos, data.type = 'logratio')
 
   ## we could enable smoothing, but it seems to work better
@@ -57,9 +57,8 @@ getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=2, alpha=0.01, 
     print("Segmenting Data");
   }
   #run cbs
-  segs <- segment(CNA.object, verbose=0, alpha=alpha, min.width=minWidth)  
+  segs <- segment(CNA.object, verbose=0, alpha=alpha, min.width=minWidth, undo.splits="sdundo",undo.SD=undoSD)  
   segs = segs$output
-
   if(rmGaps==TRUE){
     ##adjust first and last segs to meet chromosome ends,
     ##the remove gaps between segments by setting the breakpoint
@@ -96,7 +95,6 @@ getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=2, alpha=0.01, 
       }      
       return(asegs)
     }
-
     ##do the gap removal
     segs2 = NULL  
     for(i in 1:length(entrypoints$chr)){
@@ -113,7 +111,6 @@ getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=2, alpha=0.01, 
     segs = segs2
   }
 
-  
   
   ##convert means back out of log space into absolute copy number
   segs$seg.mean=(2^segs$seg.mean)*2
@@ -135,12 +132,10 @@ getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=2, alpha=0.01, 
 ##   }
 ##   doPlots()
 
-  
   if(onlyAlts){
     return(subset(segs,(seg.mean > params$gainThresh/(params$med/2) |
                         seg.mean < params$lossThresh/(params$med/2)))[,2:6])
   }
-
   ##remove the sample name column before returning
   return(segs[,2:6])
 }
@@ -189,7 +184,7 @@ mergeSegs <- function(segs,rdo){
 ## subset out just the alterations from the segment file 
 ##
 getAlts <- function(segs,rdo){
-  return(subset(segs,(seg.mean > rdo@binParams$gainThresh/(rdo@binParams$med/2) | seg.mean < rdo@binParams$lossThresh/(rdo@binParams$med/2))))
+  return(subset(segs,(seg.mean > rdo@binParams$gainThresh | seg.mean < rdo@binParams$lossThresh)))
 }
 
 

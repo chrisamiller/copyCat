@@ -1,18 +1,24 @@
 ##--------------------------------------------------
 ## plot the loess correction for gc content
 ##
-plotGcLoess <- function(med,gc,reads,fitted,fixed,fixedfit,params,libNum){
-  pdf(paste(params$outputDirectory,"/plots/loessNorm.gccontent.lib",libNum,".pdf",sep=""),width=8,height=11)
+plotGcLoess <- function(med,gc,reads,fitted,fixed,fixedfit,rdo,libNum,readLength,libName){
+  params=rdo@params
+  if(is.null(params$prefix)){
+    pdf(paste(params$outputDirectory,"/plots/gccontent.lib",libNum,".readLength",readLength,".pdf",sep=""),width=8,height=11)
+  } else {
+    pdf(paste(params$outputDirectory,"/plots/",params$prefix,".gccontent.lib",libNum,".readLength",readLength,".pdf",sep=""),width=8,height=11)
+  }
   par(mfcol=c(2,1))
 
   ymax <- med*3
   ##plot original
   plot(gc,reads,ylim=c(0,ymax),ylab="mean # reads", main="GC content bias - raw Data", xlab="GC content %")
+  mtext(paste("lib:",names(rdo@chrs[[1]])[libNum]," readLength:",readLength,sep=""))
   points(gc,fitted,col="green",pch=20)
   abline(h=med,col="red")
 
   ## plot post-adjustment
-  plot(gc,fixed,ylim=c(0,ymax),ylab="mean # reads", main=paste("GC content bias - post LOESS correction - lib",names(rdo@chrs[[1]])[libNum],sep=""), xlab="GC content %")
+  plot(gc,fixed,ylim=c(0,ymax),ylab="mean # reads", main="GC content bias - post LOESS correction", xlab="GC content %")
   points(gc,fixedfit,col="green",pch=20)
   abline(h=med,col="red")
   
@@ -22,13 +28,19 @@ plotGcLoess <- function(med,gc,reads,fitted,fixed,fixedfit,params,libNum){
 ##--------------------------------------------------
 ## plot the loess correction for mapability content
 ##
-plotMapLoess <- function(med,map,reads,fitted,fixed,fixedfit,params,libNum){
-  pdf(paste(params$outputDirectory,"/plots/loessNorm.mapability.lib",libNum,".pdf",sep=""),width=8,height=11)
+plotMapLoess <- function(med,map,reads,fitted,fixed,fixedfit,rdo,libNum,readLength,libName){
+  params=rdo@params
+  if(is.null(params$prefix)){
+    pdf(paste(params$outputDirectory,"/plots/mapability.lib",libNum,".readLength",readLength,".pdf",sep=""),width=8,height=11)
+  } else {
+    pdf(paste(params$outputDirectory,"/plots/",params$prefix,".mapability.lib",libNum,".readLength",readLength,".pdf",sep=""),width=8,height=11)
+  }
   par(mfcol=c(2,1))
 
   ymax <- med*3
   ##plot original
-  plot(map,reads,ylim=c(0,ymax),ylab="mean # reads", main=paste("Mapability bias - raw Data - lib ",names(rdo@chrs[[1]])[libNum],sep=""), xlab="Mapability content %")
+  plot(map,reads,ylim=c(0,ymax),ylab="mean # reads", main="Mapability bias - raw Data", xlab="Mapability content %")
+  mtext(paste("lib:",names(rdo@chrs[[1]])[libNum]," readLength:",readLength,sep=""))
   points(map,fitted,col="green",pch=20)
   abline(h=med,col="red")
 

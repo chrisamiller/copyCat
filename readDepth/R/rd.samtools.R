@@ -1,12 +1,13 @@
 ##-----------------------------------------------------------
 ## read in a samtools pileup file, calculate the VAF of each
 ## SNP, then find regions where the VAF is reasonably stable
-## at 2x, 3x, or 4x
+## at 2x, 3x, or 4x. Use these regions to calculate the depth
+## that is equivalent to CN-neutral regions
 ##
 cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle=3, minimumDepth=20, maximumDepth=100, plot=FALSE){
 
   if(verbose){
-    print("reading in dbSNP het sites")
+    print("reading in samtools file")
     print(date())
   }
 
@@ -201,7 +202,7 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
   print(mean(adjReadDepths, na.rm=TRUE))
   if(plot){
     pdf(file=paste(rdo@params$outputDirectory,"/plots/vafplots/means.pdf",sep=""))
-    hist(adjReadDepths,breaks=100,col="darkgreen")
+    hist(adjReadDepths,breaks=100,col="darkgreen",xlim=c(0,(mean(adjReadDepths, na.rm=TRUE)*2)))
     mtext("red=mean,blue=med")
     abline(v=mean(adjReadDepths,na.rm=T),col="red")
     abline(v=median(adjReadDepths,na.rm=T),col="blue")   
@@ -210,5 +211,5 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
 
   #return(adjReadDepths)
   print(date())
-  return(mean(adjReadDepths, na.rm=TRUE));
+  return(median(adjReadDepths, na.rm=TRUE));
 }

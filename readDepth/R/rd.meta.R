@@ -36,10 +36,9 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
 
   ##segment the data using CBS
   segs = rd.cnSegments(rdo)
-  ##set gain and loss thresholds
+  ##set gain and loss thresholds  
   rdo@binParams$gainThresh = 2.5
   rdo@binParams$lossThresh = 1.5
-
   ##write some output
   writeSegs(segs,rdo)
   writeAlts(segs,rdo)
@@ -67,7 +66,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     outputDirectory=outputDirectory, inputType=inputType,
     inputFile=normal, binSize=binSize, perReadLength=perReadLength,
     perLibrary=perLibrary, readLength=readLength)
-  rdo2@params$prefix="normal";
+  rdo@params$prefix="normal";
   
   ##bin the reads
   rdo=readDepth(rdo)
