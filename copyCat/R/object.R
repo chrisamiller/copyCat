@@ -25,7 +25,7 @@ initRdClass <- function(){
 ##
 setParams <- function(rdo, annotationDirectory, outputDirectory, inputFile, inputType,
                       maxCores=0, #0 means use all available cores
-                      binSize=0,  #0 means let readDepth choose (or infer from bins file)
+                      binSize=0,  #0 means let copyCat choose (or infer from bins file)
                       gcWindowSize=100, fdr=0.01, perLibrary=TRUE, perReadLength=TRUE, readLength=0){
   #sanity checking
   if(!(inputType=="bam" | inputType=="bins")){

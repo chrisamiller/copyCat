@@ -1,7 +1,7 @@
 ##------------------------------------------------
 ## Given an rd object, add the number of reads in
 ## each bin.
-readDepth <- function(rdo){
+getReadDepth <- function(rdo){
 
   params = rdo@params
   

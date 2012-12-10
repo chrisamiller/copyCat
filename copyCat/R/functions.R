@@ -1,5 +1,5 @@
 ##-------------------------------------------------
-## Common functions used by the readDepth package
+## Common functions used by the copyCat package
 ##
 
 

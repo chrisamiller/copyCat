@@ -1,6 +1,6 @@
 .onLoad <- function(libname, pkgname) {
-  if( !require(methods) ) stop("we require methods for package readDepth")
+  if( !require(methods) ) stop("we require methods for package copyCat")
   initRdClass()
   registerDoMC()
-  print("Using readDepth version 1.5.0")
+  print("Using copyCat version 1.5.0")
 }

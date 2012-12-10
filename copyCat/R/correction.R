@@ -1,7 +1,7 @@
 ##-------------------------------------------------
 ## gc correction functions
 ##
-rd.gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
+gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
   if(verbose){
     cat("correcting for GC bias",date(),"\n")
   }
@@ -63,7 +63,7 @@ rd.gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
 ##-------------------------------------------------
 ## mapability correction functions
 ##
-rd.mapCorrect2 <- function(rdo, outlierPercentage=0.01, minMapability=0.55){
+mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.55){
 
   ##have to correct each read length individually
   for(len in unique(rdo@readInfo$readlength)){

@@ -2,7 +2,7 @@
 ## Use circular binary segmentation to merge adjacent
 ## windows and identify breakpoints
 ##
-rd.cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=2,alpha=0.01,undoSD=2,rmGaps=TRUE){ 
+cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=2,alpha=0.01,undoSD=2,rmGaps=TRUE){ 
   library('DNAcopy')
   df = makedfLog(rdo@chrs,rdo@binParams)
   return(getSegs(df,rdo@binParams,rdo@entrypoints,onlyAlts,minWidth,alpha,rmGaps,undoSD))
@@ -12,7 +12,7 @@ rd.cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=2,alpha=0.01,undoSD=2,rmGa
 ## Use circular binary segmentation to merge adjacent
 ## windows and identify breakpoints from tumor/normal samples
 ##
-rd.paired.cnSegments <- function(nrm,tum,onlyAlts=FALSE,minWidth=2,alpha=0.01,rmGaps=TRUE){ 
+cnSegments.paired <- function(nrm,tum,onlyAlts=FALSE,minWidth=2,alpha=0.01,rmGaps=TRUE){ 
   library('DNAcopy')
 
   if(verbose){

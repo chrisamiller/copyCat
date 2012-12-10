@@ -3,7 +3,7 @@
 ##
 runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputFile,
                                     inputType, maxCores=0, #0 means use all available cores
-                                    binSize=0,  #0 means let readDepth choose (or infer from bins file)
+                                    binSize=0,  #0 means let copyCat choose (or infer from bins file)
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0,
                                     samtoolsFile=NULL, peakwiggle=3, snpBinSize=1000000,
@@ -19,11 +19,11 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
     perLibrary=perLibrary, readLength=readLength, gcWindowSize=gcWindowSize,
     fdr=fdr)
   ##bin the reads
-  rdo=readDepth(rdo)
+  rdo=getReadDepth(rdo)
   ##correct for mapability
-  rdo=rd.mapCorrect2(rdo)
+  rdo=mapCorrect(rdo)
   ##correct for gc-content
-  rdo=rd.gcCorrect(rdo)
+  rdo=gcCorrect(rdo)
   ##merge the corrected counts into one column
   rdo=mergeLibraries(rdo)
 
@@ -35,7 +35,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
   }
 
   ##segment the data using CBS
-  segs = rd.cnSegments(rdo)
+  segs = cnSegments(rdo)
   ##set gain and loss thresholds  
   rdo@binParams$gainThresh = 2.5
   rdo@binParams$lossThresh = 1.5
@@ -51,7 +51,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
 ##
 runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal, tumor,
                                     inputType, maxCores=0, #0 means use all available cores
-                                    binSize=0,  #0 means let readDepth choose (or infer from bins file)
+                                    binSize=0,  #0 means let copyCat choose (or infer from bins file)
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0, verbose=TRUE,
                                     outputSingleSample=FALSE, nrmSamtoolsFile=NULL,
@@ -69,11 +69,11 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   rdo@params$prefix="normal";
   
   ##bin the reads
-  rdo=readDepth(rdo)
+  rdo=getReadDepth(rdo)
   ##correct for mapability
-  rdo=rd.mapCorrect2(rdo)
+  rdo=mapCorrect(rdo)
   ##correct for gc-content
-  rdo=rd.gcCorrect(rdo)
+  rdo=gcCorrect(rdo)
   ##merge the corrected counts into one column
   rdo=mergeLibraries(rdo)
 
@@ -88,17 +88,17 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   rdo2@params$prefix="tumor";
 
   ##bin the reads
-  rdo2=readDepth(rdo2)
+  rdo2=getReadDepth(rdo2)
   ##correct for mapability
-  rdo2=rd.mapCorrect2(rdo2)
+  rdo2=mapCorrect(rdo2)
   ##correct for gc-content
-  rdo2=rd.gcCorrect(rdo2)
+  rdo2=gcCorrect(rdo2)
   ##merge the corrected counts into one column
   rdo2=mergeLibraries(rdo2)
 
 
   ##segment the paired data using CBS
-  segs = rd.paired.cnSegments(rdo,rdo2)
+  segs = cnSegments.paired(rdo,rdo2)
   ##set gain and loss thresholds
   rdo@binParams$gainThresh = 2.5
   rdo@binParams$lossThresh = 1.5
@@ -115,7 +115,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
       rdo2@params@med = getMedianReadCount(rdo2)
     }
     ##segment the paired data using CBS
-    segs = rd.cnSegments(rdo2)
+    segs = cnSegments(rdo2)
     ##set gain and loss thresholds
     rdo2@binParams$gainThresh = 2.5
     rdo2@binParams$lossThresh = 1.5
@@ -131,7 +131,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
       rdo@params@med = getMedianReadCount(rdo)
     }
     ##segment the paired data using CBS
-    segs = rd.cnSegments(rdo)
+    segs = cnSegments(rdo)
     ##set gain and loss thresholds
     rdo@binParams$gainThresh = 2.5
     rdo@binParams$lossThresh = 1.5

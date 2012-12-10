@@ -1,12 +1,15 @@
-The readDepth package for R can detect copy number aberrations by measuring the depth of coverage obtained by massively parallel sequencing of the genome. It achieves higher accuracy than many other packages, and runs much faster by utilizing multi-core architectures to parallelize the processing of these large data sets.
+The copyCat package for R can detect copy number aberrations by measuring the depth of coverage obtained by massively parallel sequencing of the genome. It achieves higher accuracy than many other packages, and runs much faster by utilizing multi-core architectures to parallelize the processing of these large data sets.
 
-In contrast to other published methods, readDepth does not require the sequencing of a reference sample, and uses a robust statistical model that accounts for overdispersed data. It includes a method for effectively increasing the resolution obtained from low-coverage experiments by utilizing breakpoint information from paired end sequencing to do positional refinement. It can also be used to infer copy number using reads obtained from bisulfite sequencing experiments.
+In contrast to other published methods, copyCat does not require the sequencing of a reference sample (It will happily accept paired samples if they exist, though). It uses a robust statistical model that accounts for overdispersed data. copyCat includes a method for effectively increasing the resolution obtained from low-coverage experiments by utilizing breakpoint information from paired end sequencing to do positional refinement. It can also be used to infer copy number using reads obtained from bisulfite sequencing experiments.
+
+
+copyCat is loosely based on readDepth, a previous package by the same author.
 
 WARNING - This project is currently in the middle of a code overhaul and things will be broken until further notice. The stable version of readDepth is still available on the old Google Code site (http://code.google.com/p/readdepth/).
 
 
 To build a package from the checkout:
-R CMD build readDepth
+R CMD build copyCat
 
 To install it:
-R CMD INSTALL readDepth_<version>.tar.gz
+R CMD INSTALL copyCat_<version>.tar.gz

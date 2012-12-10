@@ -4,7 +4,7 @@
 ## adjusts segment edges if there is exactly one breakpoint 
 ## that matches.
 
-rd.matchBreakpoints <- function(rdo,segs){
+refineBreakpoints <- function(rdo,segs){
 
   ## read in bps from file
   bps <- read.table(paste("annotations/breakpoints.dat",sep=""), sep="\t")
