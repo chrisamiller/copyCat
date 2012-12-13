@@ -63,7 +63,7 @@ gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
 ##-------------------------------------------------
 ## mapability correction functions
 ##
-mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.55){
+mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resolution=0.001){
 
   ##have to correct each read length individually
   for(len in unique(rdo@readInfo$readlength)){
@@ -97,7 +97,7 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.55){
     for(i in 1:(length(names(rdo2@chrs[[1]]))-1)){
       if(verbose){cat("correcting library ",i,"\n");}
       name = names(rdo2@chrs[[1]][i])
-      mapAdj = loessCorrect(rdo2,i,len,name,outlierPercentage=outlierPercentage,type="map")
+      mapAdj = loessCorrect(rdo2,i,len,name,outlierPercentage=outlierPercentage, type="map", corrResolution=resolution)
       for(j in rdo2@entrypoints$chr){
         rdo2@chrs[[j]][[name]]= mapAdj[[j]]
       }
@@ -248,8 +248,8 @@ stripOutliers <- function(nonNAbins,outlierPercentage){
   num=round(length(nonNAbins$avgreads)*outlierPercentage)
   top = sort(nonNAbins$avgreads)[length(nonNAbins$avgreads)-num]
   btm = sort(nonNAbins$avgreads)[1+num]
-  rmlist = which(nonNAbins$avgreads > top)
-  rmlist = append(rmlist,which(nonNAbins$avgreads < btm))
+  rmlist = which(nonNAbins$avgreads >= top)
+  rmlist = append(rmlist,which(nonNAbins$avgreads <= btm))
   for(i in 1:length(rmlist)){
     nonNAbins$avgreads[rmlist[i]] = NA
   }
@@ -330,8 +330,13 @@ loessCorrect <- function(rdo, libNum, readLength, libName, outlierPercentage=0.0
 
   binSize=rdo@binParams$binSize
   ##count the number of reads in each percentage bin
-  corrBins = foreach(chr=rdo@entrypoints$chr, .combine="combinePercBins") %dopar% {
-    makeCorrBins(rdo@chrs[[chr]],libNum,corrResolution,chr,type)
+  corrBins = c();
+  if(type=="gc"){
+    corrBins = foreach(chr=rdo@entrypoints$chr, .combine="combinePercBins") %dopar% {    
+      makeCorrBins(rdo@chrs[[chr]],libNum,corrResolution,chr,type)
+    }
+  } else { #use median
+    corrBins = makeCorrBinsMedian(rdo,libNum,corrResolution,type)
   }
 
   ##strip out those without any reads
@@ -351,7 +356,7 @@ loessCorrect <- function(rdo, libNum, readLength, libName, outlierPercentage=0.0
   reads = nonNAbins$avgreads
   numreads = nonNAbins$numreads
   reads.loess <- loess(reads ~ val, span=0.75, data.frame(reads=reads, val=val))
-
+  
   ## do adjustment
   bmed=balancedCenter(reads.loess$fitted,numreads)
 #  bmed=rdo@binParams$med
@@ -368,7 +373,7 @@ loessCorrect <- function(rdo, libNum, readLength, libName, outlierPercentage=0.0
     plotGcLoess(bmed, val, reads, reads.loess$fitted, reads.fix, reads.resLoess$fitted, rdo, libNum, readLength, libName)
   }
 
-  if(outlierPercentage > 0){
+  if(outlierPercentage > 0 & length(rmlist) > 0){
     results = returnOutliers(results,rmlist,preOutliers)
   }
 
@@ -438,11 +443,12 @@ doCorrection <- function(bin, libNum, corrResolution, theAdj, chr, type){
     if( (!(is.na(x[libNum]))) & (!(is.na(x[libNum])))){
       ##don't correct windows with zero reads
       if(!(x[libNum]==0)){
-        x[libNum] <- x[libNum] - theAdj[round(x[type]/corrResolution)+1]
+        print(x[libNum])        
+        x[libNum] <- x[libNum] - theAdj[as.numeric(round(x[type]/corrResolution)+1)]
         ##for the rare case that a bin ends up below zero, set to just
         ## above zero.  (can't be zero, because it has at least one read)
         if(x[libNum] < 0){
-          x[libNum] = 1
+          x[libNum] = 0.000001
         }
       }
     }
@@ -510,57 +516,81 @@ combinePercBins <- function(a,b){
 makeCorrBins <- function(bin,libNum,windSize,chr,type){
   ##create vectors for percentages and number of reads
   myBin <- c()
-  numReads <- c()
-  numHits <- c()
+  zmean <- c()
+  zcnt <- c()
   for(i in 1:((1/windSize)+1)){
     myBin[[i]] <- ((i*windSize)-windSize)
-    numReads[[i]] <- NA
-    numHits[[i]] <- 0
+    zmean[[i]] <- NA
+    zcnt[[i]] <- 0
   }
-  ##fill the vectors
-  for(i in 1:length(bin[[libNum]])){
-    if(!(is.na(bin[,libNum][[i]]))){
-      val <- round(bin[[type]][[i]]/windSize)+1
-      if(!is.na(val)){
-        ##initialize to zero the first time
-        if(is.na(numReads[[val]])){
-          numReads[[val]] <- 0
-        }
-        numReads[[val]] <- numReads[[val]] + bin[,libNum][[i]]
-        numHits[[val]] <- numHits[[val]] + 1
-      }
-    }
+
+  names(bin)[libNum] = "count"
+  
+  bin = cbind(bin,zbin=(round(bin[[type]]/windSize)+1))
+  for(i in 1:length(myBin)){
+    zmean[[i]] = mean(bin[bin$zbin == i,]$count, na.rm=T)
+    zcnt[[i]] = sum(bin[bin$zbin == i,]$count, na.rm=T)
   }
-  return(data.frame(val=myBin,avgreads=numReads/numHits,numreads=numReads))
+  return(data.frame(val=myBin, avgreads=zmean, numreads=zcnt))
+
 }
 
-
-makeGcCorrBins <- function(bin,libNum,windSize,chr){
-  ##create vectors for gc and number of reads
-  gcBin <- c()
-  numReads <- c()
-  numHits <- c()
+##---------------------------------------------------------
+## calculate the number of reads in each percentage bin
+##
+makeCorrBinsMedian <- function(rdo,libNum,windSize,type){
+  bins = makeMapDf(rdo,libNum)
+  
+  ##create vectors for percentages and number of reads
+  myBin <- c()
+  zmed <- c()
+  zcnt <- c()
   for(i in 1:((1/windSize)+1)){
-    gcBin[[i]] <- ((i*windSize)-windSize)
-    numReads[[i]] <- NA
-    numHits[[i]] <- 0
+    myBin[[i]] <- ((i*windSize)-windSize)
+    zmed[[i]] <- NA
+    zcnt[[i]] <- 0
   }
-  ##fill the vectors
-  for(i in 1:length(bin$gc)){
-    if(!(is.na(bin[,libNum][[i]]))){
-      val <- round(bin$gc[[i]]/windSize)+1
-      if(!is.na(val)){
-        ##initialize to zero the first time
-        if(is.na(numReads[[val]])){
-          numReads[[val]] <- 0
-        }
-        numReads[[val]] <- numReads[[val]] + bin[,libNum][[i]]
-        numHits[[val]] <- numHits[[val]] + 1
-      }
-    }
+
+  bins = cbind(bins,zbin=(round(bins[[type]]/windSize)+1))
+
+  for(i in 1:length(myBin)){
+    zmed[[i]] = median(bins[bins$zbin == i,]$count, na.rm=T)
+    zcnt[[i]] = sum(bins[bins$zbin == i,]$count, na.rm=T)
   }
-  return(data.frame(gc=gcBin,avgreads=numReads/numHits,numreads=numReads))
+  return(data.frame(val=myBin,avgreads=zmed, numreads=zcnt))
 }
+
+
+## ##--------------------------------------------------------
+## ##
+## ##
+## makeGcCorrBins <- function(bin,libNum,windSize,chr){
+##   ##create vectors for gc and number of reads
+##   gcBin <- c()
+##   numReads <- c()
+##   numHits <- c()
+##   for(i in 1:((1/windSize)+1)){
+##     gcBin[[i]] <- ((i*windSize)-windSize)
+##     numReads[[i]] <- NA
+##     numHits[[i]] <- 0
+##   }
+
+##   ##fill the vectors
+##   for(i in 1:length(bin$gc)){
+##     if(!(is.na(bin[,libNum][[i]]))){
+##       val <- round(bin$gc[[i]]/windSize)+1
+##       if(!is.na(val)){
+##         ##initialize to zero the first time
+##         if(is.na(numReads[[val]])){
+##           numReads[[val]] <- 0
+##         }
+##         numReads[[val]] <- numReads[[val]] + bin[,libNum][[i]]
+##         numHits[[val]] <- numHits[[val]] + 1
+##       }
+##     }
+##   }
+##   return(data.frame(gc=gcBin,avgreads=numReads/numHits,numreads=numReads))
+## }
 
 
 

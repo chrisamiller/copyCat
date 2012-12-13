@@ -70,8 +70,9 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   
   ##bin the reads
   rdo=getReadDepth(rdo)
-  ##correct for mapability
-  rdo=mapCorrect(rdo)
+
+  ##no correction for mapability, but gc-content correction still important.
+  
   ##correct for gc-content
   rdo=gcCorrect(rdo)
   ##merge the corrected counts into one column

@@ -251,6 +251,30 @@ makedf <-function(binList,params){
 }
 
 
+##---------------------------------------------------
+## make a dataframe from a particular library with count
+## and mapablity
+##
+makeMapDf <-function(rdo,libNum){
+  binList = rdo@chrs
+  ##drop the last window from each chr, because it's truncated  
+  for(i in names(rdo@chrs)){
+    binList[[i]] = rdo@chrs[[i]][1:(length(rdo@chrs[[i]][,1])-1), ,drop=FALSE]
+  }
+
+  ##get scores 
+  counts <- foreach(i=names(binList), .combine="append") %do% {
+    binList[[i]][[libNum]]
+  }
+
+  ##get map
+  maps <- foreach(i=names(binList), .combine="append") %do% {
+    binList[[i]]$map
+  }
+  
+  return(data.frame(count=counts,map=maps))
+}
+
 ##-----------------------------------------------------------
 ## some simple output functions
 ##

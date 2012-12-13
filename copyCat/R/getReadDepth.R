@@ -51,6 +51,11 @@ getWindowBins <- function(rdo){
   winds = read.table(params$binFile,sep="\t",quote="", header=T)
   chrs = vector("list")
 
+  rdo@params$binSize = winds[3,2]-winds[2,2]
+  if(verbose){
+    print(paste("inferred bin size: ", rdo@params$binSize))
+  }
+  
   ##remove any columns with no data - all zeros
   for(i in names(winds)){
     if(sum(as.numeric(winds[[i]]))==0){
@@ -64,6 +69,7 @@ getWindowBins <- function(rdo){
     stop()
   }
 
+  ##TODO - these checks should be improved
   ##if no per-lib information, can't do per-lib correction
   if((names(winds)[3] == "Counts") & (params$perLibrary == TRUE)){
     print("WARNING: bins file wasn't created with per-library option, will not perform per-library correction")

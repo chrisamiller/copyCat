@@ -36,12 +36,12 @@ setParams <- function(rdo, annotationDirectory, outputDirectory, inputFile, inpu
     print(paste("file \"",inputFile,"\" does not exist"))
     stop()
   }  
-  if(binSize==0){
-    if(inputType=="bins"){
-      print("If a bin file is provided, the binSize must be specified (and match the contents of the bin file)")
-      stop()
-    }
-  }
+  ## if(binSize==0){
+  ##   if(inputType=="bins"){
+  ##     print("If a bin file is provided, the binSize must be specified (and match the contents of the bin file)")
+  ##     stop()
+  ##   }
+  ## }
   
   #fill the params data frame
   rdo@params <- data.frame(annotationDirectory=annotationDirectory,
