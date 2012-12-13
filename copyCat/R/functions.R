@@ -650,3 +650,30 @@ replaceReadCounts <- function(rdo,rdo2){
   return(rdo)
 }
 
+##-----------------------------------------------------------
+## find the appropriate annotations to use with this data
+## if it doesn't exist, warn the user
+##
+getAnnoDir <- function(annodir, readlength, tolerance=5){
+  idealDir = paste(annodir,"/readlength.",readlength,sep="")
+  if(file.exists(idealDir)){
+    return(idealDir)
+  }
+  ##else, see what other directories are available
+  getlens <- function(dir){
+    a = strsplit(dir,".",fixed=T)[[1]]
+    return(as.numeric(a[length(a)]))
+  }
+
+  dirs = sapply(Sys.glob(paste(annodir,"/readlength*",sep="")), getlens)
+  diff = sort(abs(dirs-readlength))
+  if(diff[1] > tolerance){    
+    print(paste("ERROR: no annotation files exists that match a read length of ",readlength," (+/-",tolerance,") ",sep=""))
+    print("consult the documentation for instructions on downloading or creating these files.")
+    stop()
+  }
+  if(verbose){
+    print(paste("using annotations for read length of ",dirs[1]," which are close enough",sep=""))
+  }
+  return(names(diff[1]))
+}

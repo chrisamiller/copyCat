@@ -195,6 +195,7 @@ binGC <- function(rdo, chr, readlength){
   binNum = length(rdo@chrs[[chr]][,1])
   len = getChrLength(chr,rdo@params$entrypoints)
 
+  annodir = getAnnoDir(rdo@params$annotationDirectory, readlength)
   ## read in all gc windows
   gc = scan(gzfile(paste(rdo@params$annotationDirectory,"/readlength.",readlength,"/gcWinds/",chr,".gc.gz",sep="")), what=0, quiet=TRUE)
 
