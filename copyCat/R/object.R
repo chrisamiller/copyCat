@@ -64,7 +64,7 @@ setParams <- function(rdo, annotationDirectory, outputDirectory, inputFile, inpu
   ##fill entrypoints
   rdo@entrypoints=readEntrypoints(rdo@params$annotationDirectory)
   ## TODO - maybe only do this if we're estimating window size
-  rdo@entrypoints=addMapability(rdo@entrypoints,annotationDirectory)
+  #rdo@entrypoints=addMapability(rdo@entrypoints,annotationDirectory)
   
   ##set multicore options if specified
   if(maxCores > 0){
@@ -201,7 +201,8 @@ ploidyPercentages <- function(effectiveGenomeSize,ents,params){
 ##
 addMapability <-function(entrypoints, annoDir, readLength=100){
   ##first, we need the mappable regions
-  mapTotalFileName = paste(annoDir,"/readlength.",readLength,"/mapability/totalMappablePerc",sep="")
+  annodir = getAnnoDir(annoDir, readlength)
+  mapTotalFileName = paste(annodir,"/mapability/totalMappablePerc",sep="")
   mapDir = paste(annoDir,"/readlength.",readLength,"/mapability/",sep="")
   mapTots = 0
   #default is 100% mapability

@@ -17,7 +17,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
     outputDirectory=outputDirectory, inputType=inputType, maxCores=maxCores,
     inputFile=inputFile, binSize=binSize, perReadLength=perReadLength,
     perLibrary=perLibrary, readLength=readLength, gcWindowSize=gcWindowSize,
-    fdr=fdr)
+    fdr=fdr, maxCores=maxCores)
   ##bin the reads
   rdo=getReadDepth(rdo)
   ##correct for mapability
@@ -54,8 +54,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     binSize=0,  #0 means let copyCat choose (or infer from bins file)
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0, verbose=TRUE,
-                                    outputSingleSample=FALSE, nrmSamtoolsFile=NULL,
-                                    tumorSamtoolsFile=NULL){
+                                    outputSingleSample=FALSE, tumorSamtoolsFile=NULL){
 
   verbose <<- verbose
 
@@ -65,14 +64,15 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   rdo = setParams(rdo, annotationDirectory=annotationDirectory,
     outputDirectory=outputDirectory, inputType=inputType,
     inputFile=normal, binSize=binSize, perReadLength=perReadLength,
-    perLibrary=perLibrary, readLength=readLength)
+    perLibrary=perLibrary, readLength=readLength, maxCores=maxCores)
   rdo@params$prefix="normal";
   
   ##bin the reads
   rdo=getReadDepth(rdo)
 
-  ##no correction for mapability, but gc-content correction still important.
-  
+  ##no correction for mapability, but still remove low-mapability regions
+  ##from consideration 
+  rdo=mapCorrect(rdo,skipCorrection=TRUE);  
   ##correct for gc-content
   rdo=gcCorrect(rdo)
   ##merge the corrected counts into one column
@@ -85,13 +85,15 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   rdo2 = setParams(rdo2, annotationDirectory=annotationDirectory,
     outputDirectory=outputDirectory, inputType=inputType,
     inputFile=tumor, binSize=binSize, perReadLength=perReadLength,
-    perLibrary=perLibrary, readLength=readLength)
+    perLibrary=perLibrary, readLength=readLength, maxCores=maxCores)
   rdo2@params$prefix="tumor";
 
   ##bin the reads
   rdo2=getReadDepth(rdo2)
-  ##correct for mapability
-  rdo2=mapCorrect(rdo2)
+
+  ##no correction for mapability, but still remove low-mapability regions
+  ##from consideration 
+  rdo2=mapCorrect(rdo2,skipCorrection=TRUE);
   ##correct for gc-content
   rdo2=gcCorrect(rdo2)
   ##merge the corrected counts into one column
@@ -127,7 +129,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     
     #normal
     if(!(is.null(tumorSamtoolsFile))){
-      rdo@params$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+      rdo@params$med = cnNeutralDepthFromHetSites(rdo,tumorSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
     } else {
       rdo@params@med = getMedianReadCount(rdo)
     }
@@ -142,5 +144,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     
   }
   
-  
+  dumpParams(rdo)
+  dumpParams(rdo2)
+    
 }

@@ -322,10 +322,12 @@ writeThresholds <- function(rdo){
 }
 
 writeSegs <- function(segs,rdo,filename="segs.dat"){
+  options(scipen=999)
   write.table(segs, file=paste(rdo@params$outputDirectory,"/",filename,sep=""), sep="\t", quote=F, row.names=F, col.names=F)
 }
 
 writeAlts <- function(segs,rdo,filename="alts.dat"){
+  options(scipen=999)
   write.table(getAlts(segs,rdo), file=paste(rdo@params$outputDirectory,"/",filename,sep=""), sep="\t", quote=F, row.names=F, col.names=F)
 }
 
@@ -566,6 +568,16 @@ writeCnvhmmInput <- function(tum){
 
 
 ##-----------------------------------------------------------
+## dumps the parameters to a file
+##
+dumpParams <- function(rdo){
+  write.table(t(rdo@params),paste(rdo@params$outputDirectory,"/params.",rdo@params$prefix,".txt",sep=""),sep="\t",quote=F,col.names=F)
+  write.table(t(rdo@binParams),paste(rdo@params$outputDirectory,"/params.",rdo@params$prefix,".txt",sep=""),sep="\t",quote=F,col.names=F,append=T)
+  write.table(rdo@readInfo,paste(rdo@params$outputDirectory,"/libraries.",rdo@params$prefix,".txt",sep=""),sep="\t",quote=F,col.names=T)
+}
+
+
+##-----------------------------------------------------------
 ## Author: Kevin Wright
 ## with some ideas from Andy Liaw
 ## http://tolstoy.newcastle.edu.au/R/help/04/07/1076.html
@@ -673,7 +685,9 @@ getAnnoDir <- function(annodir, readlength, tolerance=5){
     stop()
   }
   if(verbose){
-    print(paste("using annotations for read length of ",dirs[1]," which are close enough",sep=""))
+    print(paste("WARNING: annotations for read length of ",readlength," don't exist",sep=""))
+    print(paste("using annotations for read length of ",getlens(names(diff[1]))," which are close enough",sep=""))
   }
   return(names(diff[1]))
 }
+

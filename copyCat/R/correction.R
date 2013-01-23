@@ -11,9 +11,11 @@ gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
     if(verbose){
       print(paste("calculating GC content for readlength",len,date(),sep=" "))
     }
-
+    
     rdo2 = subsetByReadLength(rdo,len)
+    rdo2@params$annotationDirectory = getAnnoDir(rdo2@params$annotationDirectory, len)
 
+    
     ##figure out the avg num of reads for each level of GC content
     mcoptions <- list(preschedule = FALSE)
     gcBins = foreach(chr=rdo2@entrypoints$chr, .combine="combineBins",.options.multicore=mcoptions) %dopar% {
@@ -37,8 +39,10 @@ gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
 
     ##for each library
     for(i in 1:(length(names(rdo2@chrs[[1]]))-1)){
-      if(verbose){cat("correcting library ",i,"\n");}
       name = names(rdo2@chrs[[1]][i])
+      if(verbose){
+        print(paste("correcting library ",i," (",name,")",sep=""))
+      }
       gcAdj = loessCorrect(rdo2,i,len,name,outlierPercentage=outlierPercentage,type="gc")
       for(j in rdo2@entrypoints$chr){
         rdo2@chrs[[j]][[name]]= gcAdj[[j]]
@@ -63,7 +67,7 @@ gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
 ##-------------------------------------------------
 ## mapability correction functions
 ##
-mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resolution=0.001){
+mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resolution=0.001, skipCorrection=FALSE){
 
   ##have to correct each read length individually
   for(len in unique(rdo@readInfo$readlength)){
@@ -90,24 +94,22 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
       }
     }
 
-    ##finally, do the loess correction
-    if(verbose){cat("Correcting read depth for mapability bias:  ",date(),"\n")}
-
-    ##for each library
-    for(i in 1:(length(names(rdo2@chrs[[1]]))-1)){
-      if(verbose){cat("correcting library ",i,"\n");}
-      name = names(rdo2@chrs[[1]][i])
-      mapAdj = loessCorrect(rdo2,i,len,name,outlierPercentage=outlierPercentage, type="map", corrResolution=resolution)
-      for(j in rdo2@entrypoints$chr){
-        rdo2@chrs[[j]][[name]]= mapAdj[[j]]
+    ##skipping correction can be used to just remove low-mapability sites. Helps prevent
+    ##spurious hits in low-coverage regions. (2 reads vs 1 read should not be significant)
+    if(!(skipCorrection)){
+      ##finally, do the loess correction
+      if(verbose){cat("Correcting read depth for mapability bias:  ",date(),"\n")}
+      
+      ##for each library
+      for(i in 1:(length(names(rdo2@chrs[[1]]))-1)){
+        if(verbose){cat("correcting library ",i,"\n");}
+        name = names(rdo2@chrs[[1]][i])
+        mapAdj = loessCorrect(rdo2,i,len,name,outlierPercentage=outlierPercentage, type="map", corrResolution=resolution)
+        for(j in rdo2@entrypoints$chr){
+          rdo2@chrs[[j]][[name]]= mapAdj[[j]]
+        }
       }
-    }
-
-    ##  if(verbose){
-    ##    plotDist(rdo2, filename="output/dist.postMapCor.pdf")
-    ##    cat("Done",date(),"\n")
-    ##    cat("------------------------\n")
-    ##  }
+    } 
 
     ##merge back into rdo
     rdo = replaceReadCounts(rdo,rdo2)
@@ -195,9 +197,8 @@ binGC <- function(rdo, chr, readlength){
   binNum = length(rdo@chrs[[chr]][,1])
   len = getChrLength(chr,rdo@params$entrypoints)
 
-  annodir = getAnnoDir(rdo@params$annotationDirectory, readlength)
   ## read in all gc windows
-  gc = scan(gzfile(paste(rdo@params$annotationDirectory,"/readlength.",readlength,"/gcWinds/",chr,".gc.gz",sep="")), what=0, quiet=TRUE)
+  gc = scan(gzfile(paste(rdo@params$annotationDirectory,"/gcWinds/",chr,".gc.gz",sep="")), what=0, quiet=TRUE)
 
   a <- 1:binNum
   numPerBin=rdo@binParams$binSize/rdo@params$gcWindowSize
@@ -223,7 +224,7 @@ binMap <- function(rdo, chr, readlength){
   len = getChrLength(chr,rdo@entrypoints)
 
   ## read in all mapability windows
-  maps = scan(gzfile(paste(rdo@params$annotationDirectory,"/readlength.",readlength,"/mapability/",chr,".dat.gz",sep="")), what=0, quiet=TRUE)
+  maps = scan(gzfile(paste(rdo@params$annotationDirectory,"/mapability/",chr,".dat.gz",sep="")), what=0, quiet=TRUE)
 
   a <- 1:binNum
   numPerBin=rdo@binParams$binSize/rdo@params$gcWindowSize
@@ -441,15 +442,14 @@ doCorrection <- function(bin, libNum, corrResolution, theAdj, chr, type){
 
   doAdjust <- function(x){
     #print(x[libNum])
-    if( (!(is.na(x[libNum]))) & (!(is.na(x[libNum])))){
+    if( (!(is.na(x[libNum]))) & (!(is.na(x[type])))){
       ##don't correct windows with zero reads
       if(!(x[libNum]==0)){
-        print(x[libNum])        
         x[libNum] <- x[libNum] - theAdj[as.numeric(round(x[type]/corrResolution)+1)]
         ##for the rare case that a bin ends up below zero, set to just
         ## above zero.  (can't be zero, because it has at least one read)
         if(x[libNum] < 0){
-          x[libNum] = 0.000001
+          x[libNum] = 0
         }
       }
     }
