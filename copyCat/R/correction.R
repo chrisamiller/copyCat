@@ -76,6 +76,7 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
     }
 
     rdo2 = subsetByReadLength(rdo,len)
+    rdo2@params$annotationDirectory = getAnnoDir(rdo2@params$annotationDirectory, len)
 
     ##figure out the avg num of reads for each level of mapability
     mcoptions <- list(preschedule = FALSE)
@@ -96,7 +97,7 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
 
     ##skipping correction can be used to just remove low-mapability sites. Helps prevent
     ##spurious hits in low-coverage regions. (2 reads vs 1 read should not be significant)
-    if(!(skipCorrection)){
+    if(skipCorrection==FALSE){
       ##finally, do the loess correction
       if(verbose){cat("Correcting read depth for mapability bias:  ",date(),"\n")}
       
