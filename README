@@ -2,7 +2,6 @@ The copyCat package for R can detect copy number aberrations by measuring the de
 
 In contrast to other published methods, copyCat does not require the sequencing of a reference sample (It will happily accept paired samples if they exist, though). It uses a robust statistical model that accounts for overdispersed data. copyCat includes a method for effectively increasing the resolution obtained from low-coverage experiments by utilizing breakpoint information from paired end sequencing to do positional refinement. It can also be used to infer copy number using reads obtained from bisulfite sequencing experiments.
 
-
 copyCat is loosely based on readDepth, a previous package by the same author.
 
 WARNING - This project is currently in the middle of a code overhaul and things will be broken until further notice. The stable version of readDepth is still available on the old Google Code site (http://code.google.com/p/readdepth/).
