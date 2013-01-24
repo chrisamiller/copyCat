@@ -193,7 +193,7 @@ mergeLibraries <- function(rdo){
 ##---------------------------------------------------
 ## make a dataframe from our rdo object with chr, pos, log score
 ##
-makedfLog <-function(binList,params){
+makeDfLog <-function(binList,params){
   #drop the last window from each chr, because it's truncated
   for(i in names(binList)){
     binList[[i]] = binList[[i]][1:(length(binList[[i]][,1])-1), ,drop=FALSE]
@@ -223,7 +223,7 @@ makedfLog <-function(binList,params){
 ##---------------------------------------------------
 ## make a dataframe from our rdo object with chr, pos, score
 ##
-makedf <-function(binList,params){
+makeDf <-function(binList,params){
   #drop the last window from each chr, because it's truncated
   for(i in names(binList)){
     binList[[i]] = binList[[i]][1:(length(binList[[i]][,1])-1), ,drop=FALSE]
@@ -250,6 +250,38 @@ makedf <-function(binList,params){
   return(subset(gd,!is.na(score)))
 }
 
+##---------------------------------------------------
+## make a dataframe from a paired set of samples with chr, pos, log2 ratio
+##
+makeDfLogPaired <- function(nrm,tum){
+  ##create a merged data frame with windows common to both samples
+  dftum = makeDf(tum@chrs,tum@params)
+  dfnrm = makeDf(nrm@chrs,nrm@params)
+  counts=merge(dftum,dfnrm,by=c("chr","pos"))
+  counts = sort(counts,by = ~ +chr +pos)  
+  
+  counts$score.x = counts$score.x/tum@binParams$med
+  counts$score.y = counts$score.y/nrm@binParams$med
+  
+  df = data.frame(chr=counts$chr,pos=counts$pos,score=log2(counts$score.x/counts$score.y))
+}
+
+
+##---------------------------------------------------
+## make a dataframe from a paired set of samples with chr, pos, estimatedCn
+##
+makeDfPaired <- function(nrm,tum){
+  ##create a merged data frame with windows common to both samples
+  dftum = makeDf(tum@chrs,tum@params)
+  dfnrm = makeDf(nrm@chrs,nrm@params)
+  counts=merge(dftum,dfnrm,by=c("chr","pos"))
+  counts = sort(counts,by = ~ +chr +pos)  
+  
+  counts$score.x = counts$score.x/tum@binParams$med
+  counts$score.y = counts$score.y/nrm@binParams$med
+  
+  df = data.frame(chr=counts$chr,pos=counts$pos,score=(counts$score.x/counts$score.y)*2)
+}
 
 ##---------------------------------------------------
 ## make a dataframe from a particular library with count
@@ -279,28 +311,33 @@ makeMapDf <-function(rdo,libNum){
 ## some simple output functions
 ##
 writeBins <- function(rdo, filename=NULL, cnvHmmFormat=FALSE){#, includeMapability=FALSE, includeGcContent=FALSE){
-
+  #figure out filename
+  if(is.null(filename)){
+    suffix=".dat";
+    if(cnvHmmFormat){
+      suffix = ".cnvhmm";
+    }
+    
+    if(!(is.null(rdo@params$prefix))){
+      filename=paste(rdo@params$outputDirectory,"/",rdo@params$prefix,".rd.bins.",suffix,sep="")
+    } else {
+      filename=paste(rdo@params$outputDirectory,"/rd.bins.",suffix,sep="")
+    }
+  }
+   
   #add cnvhmm header if necessary
   appendFile=FALSE
   if(cnvHmmFormat){
     appendFile=TRUE
-    if(is.null(filename)){
-      filename=paste(rdo@params$outputDirectory,"/rd.bins.cnvhmm",sep="")
-    }
-    
     ## #WholeGenome_Median:4639
     ## #2xReadCount:4639.00 in 10000 bp
     a1 = paste("#WholeGenome_Median:",rdo@binParams$med,sep="")     
     b1 = paste("#2xReadCount:",rdo@binParams$med," in ",rdo@binParams$binSize," bp",sep="")
     c1 = "CHR\tPOS\tReadCount\tCopyNumber"
     write(c(a1,b1,c1), file=filename)
-  }
+  } else
     
-  if(is.null(filename)){
-    filename=paste(rdo@params$outputDirectory,"/rd.bins.dat",sep="")
-  }
-  
-  df = makedf(rdo@chrs,rdo@binParams)
+  df = makeDf(rdo@chrs,rdo@binParams)
   df[,2]=df[,2]-(rdo@params$binSize/2)
 
   if(cnvHmmFormat){
@@ -313,11 +350,18 @@ writeBins <- function(rdo, filename=NULL, cnvHmmFormat=FALSE){#, includeMapabili
   write.table(df, file=filename, row.names=F, col.names=F, quote=F, sep="\t", append=appendFile)
 }
 
+writePairedBins <- function(nrm,tum){
+  df = makeDfPaired(nrm,tum);
+  options(scipen=999)
+  filename=paste(tum@params$outputDirectory,"/rd.bins.dat",sep="") 
+  write.table(df, file=filename, row.names=F, col.names=F, quote=F, sep="\t")
+}
 
 writeThresholds <- function(rdo){
   a1=data.frame(gainThresh=(rdo@binParams$gainThresh/rdo@binParams$med)*2)
   a2=data.frame(lossThresh=(rdo@binParams$lossThresh/rdo@binParams$med)*2)
   a3=data.frame(binSize=rdo@binParams$binSize)
+  options(scipen=999)
   write.table(t(cbind(a1,a2,a3)),file=paste(rdo@params$outputDirectory,"/thresholds.dat",sep=""),sep="\t",quote=F,row.names=T,col.names=F)
 }
 
@@ -338,7 +382,7 @@ writeAlts <- function(segs,rdo,filename="alts.dat"){
 ## 
 estimateOd <- function(rdo, maxOd=30, histBreaks=10){
   #get the bins together
-  bins=2^(makedf(rdo@chrs,rdo@binParams)$score)*rdo@binParams$med
+  bins=2^(makeDf(rdo@chrs,rdo@binParams)$score)*rdo@binParams$med
 
   fracNormal=rdo@binParams$dipPerc
   
@@ -481,8 +525,8 @@ addObjectBins <- function(rdo,rdo2){
 ## This mimics the Bam2CNA functionality
 ##
 writeCnahmmInput <- function(nrm,tum){
-  dftum = makedf(tum@chrs,tum@params)
-  dfnrm = makedf(nrm@chrs,nrm@params)
+  dftum = makeDf(tum@chrs,tum@params)
+  dfnrm = makeDf(nrm@chrs,nrm@params)
 
   #get rid of the old file if one exists
   if(file.exists(paste(tum@params$outputDirectory,"/tumor.normal.cn",sep=""))){
@@ -541,7 +585,7 @@ writeCnahmmInput <- function(nrm,tum){
 ## This mimics the Bam2CN functionality
 ##
 writeCnvhmmInput <- function(tum){
-  dftum = makedf(tum@chrs,tum@params)
+  dftum = makeDf(tum@chrs,tum@params)
 
   #get rid of the old file if one exists
   if(file.exists(paste(tum@params$outputDirectory,"/sample.cn",sep=""))){

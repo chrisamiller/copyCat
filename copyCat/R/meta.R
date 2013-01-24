@@ -54,7 +54,8 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     binSize=0,  #0 means let copyCat choose (or infer from bins file)
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0, verbose=TRUE,
-                                    outputSingleSample=FALSE, tumorSamtoolsFile=NULL){
+                                    outputSingleSample=FALSE, tumorSamtoolsFile=NULL,
+                                    dumpBins=FALSE){
 
   verbose <<- verbose
 
@@ -78,7 +79,6 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##merge the corrected counts into one column
   rdo=mergeLibraries(rdo)
 
-
   ##create the object
   rdo2 = new("rdObject")
   ##set the parameters
@@ -99,7 +99,10 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##merge the corrected counts into one column
   rdo2=mergeLibraries(rdo2)
 
-
+  if(dumpBins){
+    writePairedBins(rdo,rdo2)
+  }
+  
   ##segment the paired data using CBS
   segs = cnSegments.paired(rdo,rdo2)
   ##set gain and loss thresholds

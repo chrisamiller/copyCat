@@ -4,7 +4,7 @@
 ##
 cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=2,alpha=0.01,undoSD=2,rmGaps=TRUE){ 
   library('DNAcopy')
-  df = makedfLog(rdo@chrs,rdo@binParams)
+  df = makeDfLog(rdo@chrs,rdo@binParams)
   return(getSegs(df,rdo@binParams,rdo@entrypoints,onlyAlts,minWidth,alpha,rmGaps,undoSD))
 }
 
@@ -19,23 +19,8 @@ cnSegments.paired <- function(nrm,tum,onlyAlts=FALSE,minWidth=2,alpha=0.01,rmGap
     ## print("downsampling genome with greater coverage, combining data to get log2 ratios")
     print("combining data to get log2 ratios")
   }
-  #create a merged data frame with windows common to both samples
-  dftum = makedf(tum@chrs,tum@params)
-  dfnrm = makedf(nrm@chrs,nrm@params)
-  counts=merge(dftum,dfnrm,by=c("chr","pos"))
-  counts = sort(counts,by = ~ +chr +pos)  
-  ## ratio = sum(counts$score.x)/sum(counts$score.y)
-  ## #downsample the genome with more coverage to match
-  ## if(ratio > 1){
-  ##   counts$score.x = counts$score.x * (1/ratio)
-  ## } else {
-  ##   counts$score.y = counts$score.y * ratio
-  ## }  
-  
-  counts$score.x = counts$score.x/tum@binParams$med
-  counts$score.y = counts$score.y/nrm@binParams$med
-  
-  df = data.frame(chr=counts$chr,pos=counts$pos,score=log2(counts$score.x/counts$score.y))
+
+  df = makeDfLogPaired(nrm,tum)
   
   #do the segmentation
   return(getSegs(df,nrm@binParams,nrm@entrypoints,onlyAlts,minWidth,alpha,rmGaps))

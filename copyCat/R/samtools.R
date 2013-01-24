@@ -159,7 +159,7 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
     validWinds = IRanges(start=sts, end=sps)
     ##get all the positions and readcounts for this chr
     
-    df = makedf(rdo@chrs,rdo@params)
+    df = makeDf(rdo@chrs,rdo@params)
     df = df[which(df$chr==chr),]
     muts = IRanges(start=df$pos,end=df$pos+rdo@params$binSize)
     
