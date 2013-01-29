@@ -2,7 +2,7 @@
 ## Use circular binary segmentation to merge adjacent
 ## windows and identify breakpoints
 ##
-cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=2,alpha=0.01,undoSD=2,rmGaps=TRUE){ 
+cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=3,alpha=0.01,undoSD=2,rmGaps=TRUE){ 
   library('DNAcopy')
   df = makeDfLog(rdo@chrs,rdo@binParams)
   return(getSegs(df,rdo@binParams,rdo@entrypoints,onlyAlts,minWidth,alpha,rmGaps,undoSD))
@@ -12,7 +12,7 @@ cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=2,alpha=0.01,undoSD=2,rmGaps=
 ## Use circular binary segmentation to merge adjacent
 ## windows and identify breakpoints from tumor/normal samples
 ##
-cnSegments.paired <- function(nrm,tum,onlyAlts=FALSE,minWidth=2,alpha=0.01,rmGaps=TRUE){ 
+cnSegments.paired <- function(nrm,tum,onlyAlts=FALSE,minWidth=3,alpha=0.01,rmGaps=TRUE){ 
   library('DNAcopy')
 
   if(verbose){
@@ -31,7 +31,7 @@ cnSegments.paired <- function(nrm,tum,onlyAlts=FALSE,minWidth=2,alpha=0.01,rmGap
 ## run circular binary segmentation to identify discrete
 ## segments of gain and loss
 ##
-getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=2, alpha=0.01, rmGaps=TRUE, undoSD=2){
+getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=3, alpha=0.01, rmGaps=TRUE, undoSD=2){
   CNA.object <-CNA( genomdat = gd2$score, chrom = gd2$chr, maploc =gd2$pos, data.type = 'logratio')
 
   ## we could enable smoothing, but it seems to work better

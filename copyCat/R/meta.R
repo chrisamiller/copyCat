@@ -55,7 +55,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0, verbose=TRUE,
                                     outputSingleSample=FALSE, tumorSamtoolsFile=NULL,
-                                    dumpBins=FALSE){
+                                    dumpBins=FALSE, minWidth=3){
 
   verbose <<- verbose
 
@@ -104,7 +104,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   }
   
   ##segment the paired data using CBS
-  segs = cnSegments.paired(rdo,rdo2)
+  segs = cnSegments.paired(rdo, rdo2, minWidth=minWidth)
   ##set gain and loss thresholds
   rdo@binParams$gainThresh = 2.5
   rdo@binParams$lossThresh = 1.5
