@@ -2,10 +2,10 @@ Source: r-cran-copycat
 Section: misc
 Priority: optional
 Maintainer: Chris Miller <cmiller@genome.wustl.edu>
-Build-Depends: debhelper (>= 7.4), r-base-dev (>= 2.10.1-2)
+Build-Depends: debhelper (>= 7.4), r-base-dev (>= 2.14)
  
 Package: r-cran-copycat
 Architecture: all
-Depends: bash, r-base (>= 2.10.1-2), dnacopy, iranges, foreach, domc
+Depends: bash, r-base (>= 2.14), r-cran-foreach (>= 1.3), r-cran-domc (>= 1.2), r-bioc-dnacopy (>=1.2), r-bioc-iranges (>1.8)
 Description: An R package for deteecting copy number aberrations from sequencing data
  The copyCat package for R can detect copy number aberrations by measuring the depth of coverage obtained by massively parallel sequencing of the genome. It achieves higher accuracy than many other packages, and runs much faster by utilizing multi-core architectures to parallelize the processing of these large data sets.
