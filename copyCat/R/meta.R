@@ -17,7 +17,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
     outputDirectory=outputDirectory, inputType=inputType, maxCores=maxCores,
     inputFile=inputFile, binSize=binSize, perReadLength=perReadLength,
     perLibrary=perLibrary, readLength=readLength, gcWindowSize=gcWindowSize,
-    fdr=fdr, maxCores=maxCores)
+    fdr=fdr)
   ##bin the reads
   rdo=getReadDepth(rdo)
   ##correct for mapability
@@ -31,7 +31,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
   if(!(is.null(samtoolsFile))){
     rdo@params$med = cnNeutralDepthFromHetSites(rdo,samtoolsFile,1000000,peakWiggle=3,plot=TRUE)
   } else {
-    rdo@params@med = getMedianReadCount(rdo)
+    rdo@params$med = getMedianReadCount(rdo)
   }
 
   ##segment the data using CBS
@@ -55,7 +55,8 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0, verbose=TRUE,
                                     outputSingleSample=FALSE, tumorSamtoolsFile=NULL,
-                                    dumpBins=FALSE, minWidth=3){
+                                    normalSamtoolsFile=NULL, dumpBins=FALSE, minWidth=3,
+                                    doGcCorrection=TRUE){
 
   verbose <<- verbose
 
@@ -75,7 +76,9 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##from consideration 
   rdo=mapCorrect(rdo,skipCorrection=TRUE);  
   ##correct for gc-content
-  rdo=gcCorrect(rdo)
+  if(doGcCorrection){    
+    rdo=gcCorrect(rdo)
+  }
   ##merge the corrected counts into one column
   rdo=mergeLibraries(rdo)
 
@@ -95,12 +98,28 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##from consideration 
   rdo2=mapCorrect(rdo2,skipCorrection=TRUE);
   ##correct for gc-content
-  rdo2=gcCorrect(rdo2)
+  if(doGcCorrection){
+    rdo2=gcCorrect(rdo2)
+  }
   ##merge the corrected counts into one column
   rdo2=mergeLibraries(rdo2)
 
   if(dumpBins){
     writePairedBins(rdo,rdo2)
+  }
+
+  ## use samtools to find cn-neutral regions and calc median value
+  ##tumor
+  if(!(is.null(tumorSamtoolsFile))){
+    rdo2@params$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+  } else {
+    rdo2@params$med = getMedianReadCount(rdo2)
+  }
+  ##normal
+  if(!(is.null(normalSamtoolsFile))){
+    rdo@params$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+  } else {
+    rdo@params$med = getMedianReadCount(rdo)
   }
   
   ##segment the paired data using CBS
@@ -118,7 +137,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     if(!(is.null(tumorSamtoolsFile))){
       rdo2@params$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
     } else {
-      rdo2@params@med = getMedianReadCount(rdo2)
+      rdo2@params$med = getMedianReadCount(rdo2)
     }
     ##segment the paired data using CBS
     segs = cnSegments(rdo2)
@@ -126,15 +145,15 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     rdo2@binParams$gainThresh = 2.5
     rdo2@binParams$lossThresh = 1.5
     ##write some output
-    writeSegs(segs,rdo,"segs.singleSample.tumor.dat")
-    writeAlts(segs,rdo,"alts.singleSample.tumor.dat")
+    writeSegs(segs,rdo2,"segs.singleSample.tumor.dat")
+    writeAlts(segs,rdo2,"alts.singleSample.tumor.dat")
 
     
     #normal
-    if(!(is.null(tumorSamtoolsFile))){
-      rdo@params$med = cnNeutralDepthFromHetSites(rdo,tumorSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+    if(!(is.null(normalSamtoolsFile))){
+      rdo@params$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
     } else {
-      rdo@params@med = getMedianReadCount(rdo)
+      rdo@params$med = getMedianReadCount(rdo)
     }
     ##segment the paired data using CBS
     segs = cnSegments(rdo)
