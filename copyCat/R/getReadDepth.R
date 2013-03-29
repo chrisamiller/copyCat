@@ -2,36 +2,9 @@
 ## Given an rd object, add the number of reads in
 ## each bin.
 getReadDepth <- function(rdo){
-
-  params = rdo@params
+  ##options to run bam-window from this package could go here
   
-  ##run bam-window here
-  if (params$inputType == "bam") {
-    params$binFile = paste(params$outputDirectory, "/bins.dat", sep="")
-    getLibsFromBam(params)
-    
-    cmd = paste("/gscuser/cmiller/usr/src/bamwindow-v0.3/bam-window -q 1 -w ", params$binSize, " -s ", sep="")
-    if(params$perLib){
-      cmd = paste(cmd,"-r ", params$outputDirectory, "/bamlibs ", sep="");
-    }
-    
-    if (!(is.null(params$perLibLengths))){
-      if (params$perLibLengths){
-        cmd = paste(cmd, "-l ", sep="");
-      }
-    }
-    params$binFile = paste(outputDirectory, "bins", sep="\t")
-    cmd = paste(cmd, ">", params$binFile, sep="")
-    
-    if(verbose){
-      print(cmd)
-    }
-    system(cmd)
-  }
-  
-  ##read the bins in
   rdo = getWindowBins(rdo)
-  
   
   ## if(verbose){
   ##   cat("Binning End:",date(),"\n")

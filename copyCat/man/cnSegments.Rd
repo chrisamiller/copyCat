@@ -1,5 +1,5 @@
-\name{rd.cnSegments}
-\alias{rd.cnSegments}
+\name{cnSegments}
+\alias{cnSegments}
 \title{
   Identifies regions of copy-number alteration
 }
@@ -10,14 +10,14 @@
   gains or losses
 }
 \usage{
-  rd.cnSegments(rdo, onlyAlts=FALSE, minWidth=2, alpha=0.01, rmGaps=TRUE)
+  cnSegments(rdo, onlyAlts=FALSE, minWidth=3, alpha=0.01, undoSD=2, rmGaps=TRUE)
 }
 
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{rdo}{
     a readDepth object created with new("rdObject") and filled with read
-    counts using the readDepth() command
+    counts using the getReadDepth() command (optionally corrected first)
   }
   \item{onlyAlts}{
     whether the function should return just those segments that 
@@ -26,11 +26,14 @@
   }
   \item{minWidth}{
     the minimum number of consecutive aberrant bins required before making
-    a segment call.  Default is two 
+    a segment call. Default is three. 
   }
   \item{alpha}{
     the significance level for the CBS to accept change-points. Default 0.01
   }
+  \item{undoSD}{
+    require this many SDs between segment means to keep a split
+  }  
   \item{rmGaps}{
     Controls whether adjacent segments have their boundaries adjusted to remove
     gaps. If so, the new segment boundary is set to halfway between the existing
@@ -53,11 +56,8 @@
   #fill the bins with reads
   #  x.reads <- readDepth(x)
 
-  #do mapability correction on the read counts
-  #  x.map <- rd.mapCorrect(x.reads)
-
   #do gc correction on the read counts
-  #  x.gcCorr <- rd.gcCorrect(x.map)
+  #  x.gcCorr <- rd.gcCorrect(x)
 
   #return regions of CN gain and loss
   #  segs <- rd.cnSegments(x.gcCorr)

@@ -1,37 +1,51 @@
-\name{rd.mapCorrect}
-\alias{rd.mapCorrect}
+\name{mapCorrect}
+\alias{mapCorrect}
 \title{
-  Correct read depth for unmappable regions
+  Correct read depth for mapability
 }
 \description{
   takes a readDepth object containing read counts and updates the rd
-  counts, account for repetitive and unmappable genomic regions. Also
+  counts, accounting for repetitive and unmappable genomic regions. Also
   adds a "map" column containing that bin's percentage mapability
 }
 \usage{
-  rd.mapCorrect(rdo, minMapability=0.25)
+  mapCorrect(rdo)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{rdo}{
     a readDepth object created with new("rdObject") and filled with read
-    counts using the readDepth() command
+    counts using the getReadDepth() command
   }
   \item{minMapability}{
     the minimum amount of mapability required. If the mapability of a
     region is below this level, the read depth is set to NA. 
   }
+  \item{outlierPercentage}{
+    Removes the highest and lowest N% of reads before loess correction
+    This prevents overfitting near the extremes, to which loess is 
+    susceptible. Default value is 0.01
+  }
+  \item{skipCorrection}{
+    Set this to true to just remove low-mapability sites without
+    doing loess correction on any of the readcounts. Helps prevent
+    spurious hits in low-coverage regions (2 reads vs 1 read should
+    not be interpreted as a CN doubling).
+  }
+  \item{resolution}{
+    The amount of division between bins, expressed in percent. A value
+    of 1 would bin regions with mapability percentage of
+    [1,2,...,99,100].    
+  }      
 }
 \details{
-  Assumes that files containing unmappable regions are in place (see
-  readDepth documentation for proper directory structure). 
+  Assumes that appropriate annotation files are in place.
 }
 \value{
   returns a readDepth object with the read depth values altered to
-  remove bias due to mappability
+  remove bias due to mapability
 }
 \seealso{
-  'readDepth'
+  'getReadDepth'
 }
 
 \examples{
@@ -39,8 +53,8 @@
   #  x <- new("rdObject")
 
   ##fill the bins with reads
-  #  x.reads <- readDepth(x)
+  #  x <- getReadDepth(x)
 
   ##do mapping correction on the read counts
-  #  x.mapCorr = rd.mapCorrect(x.reads)
+  #  x.mapCorr = mapCorrect(x)
 }

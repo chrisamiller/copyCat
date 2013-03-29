@@ -13,7 +13,7 @@ refineBreakpoints <- function(rdo,segs){
   segs = cbind(segs,data.frame(index=1:length(segs[,1])))
 
   ##get only the alterations
-  altSegs = subset(segs,(seg.mean > rdo@binParams$gainThresh/(rdo@binParams$med/2) | seg.mean < rdo@binParams$lossThresh/(rdo@binParams$med/2)))
+  altSegs = getAlts(segs,rdo)
 
   #count up total length for stderr ouput 
   bplen <<- c()

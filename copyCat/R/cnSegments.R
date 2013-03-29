@@ -12,7 +12,7 @@ cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=3,alpha=0.01,undoSD=2,rmGaps=
 ## Use circular binary segmentation to merge adjacent
 ## windows and identify breakpoints from tumor/normal samples
 ##
-cnSegments.paired <- function(nrm,tum,onlyAlts=FALSE,minWidth=3,alpha=0.01,rmGaps=TRUE){ 
+cnSegments.paired <- function(rdo.ref,rdo.test,onlyAlts=FALSE,minWidth=3,alpha=0.01,undoSD=2,rmGaps=TRUE){ 
   library('DNAcopy')
 
   if(verbose){
@@ -20,10 +20,11 @@ cnSegments.paired <- function(nrm,tum,onlyAlts=FALSE,minWidth=3,alpha=0.01,rmGap
     print("combining data to get log2 ratios")
   }
 
-  df = makeDfLogPaired(nrm,tum)
+  df = makeDfLogPaired(rdo.ref,rdo.test)
   
   #do the segmentation
-  return(getSegs(df,nrm@binParams,nrm@entrypoints,onlyAlts,minWidth,alpha,rmGaps))
+  return(getSegs(df,params=rdo.ref@binParams, entrypoints=rdo.ref@entrypoints, onlyAlts=onlyAlts, minWidth=minWidth,
+                 alpha=alpha, rmGaps=rmGaps, undoSD=undoSD))
 }
 
 
@@ -118,8 +119,7 @@ getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=3, alpha=0.01, 
 ##   doPlots()
 
   if(onlyAlts){
-    return(subset(segs,(seg.mean > params$gainThresh/(params$med/2) |
-                        seg.mean < params$lossThresh/(params$med/2)))[,2:6])
+    return(getAlts(segs[,2:6],rdo))
   }
   ##remove the sample name column before returning
   return(segs[,2:6])
@@ -166,10 +166,10 @@ mergeSegs <- function(segs,rdo){
 
 
 ##-----------------------------------------------
-## subset out just the alterations from the segment file 
+## subset out just the alterations from the copy number segments 
 ##
 getAlts <- function(segs,rdo){
-  return(subset(segs,(seg.mean > rdo@binParams$gainThresh | seg.mean < rdo@binParams$lossThresh)))
+  return(segs[which(segs$seg.mean > rdo@binParams$gainThresh | segs$seg.mean < rdo@binParams$lossThresh),])
 }
 
 

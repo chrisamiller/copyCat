@@ -10,26 +10,25 @@
 \usage{
   getAlts(segs,rdo)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{segs}{
-    a data frame that is the result of calling rd.cnSegments
+    a 5-col data frame that is the result of calling cnSegments
   }
   \item{rdo}{
-    a readDepth object created with new("rdObject")
+    a readDepth object
   }
 }
 \value{
   a data frame containing only segments of CN gain and loss
 }
 \seealso{
-  'rd.cnSegments'
+  'cnSegments'
 }
 
 \examples{
 
   ##get regions of CN gain and loss
-  #  segs <- rd.cnSegments(x)
+  #  segs <- cnSegments(x)
 
   ##extract just the gains and losses
   #  alts <- getAlts(segs,x)

@@ -1,18 +1,19 @@
 \name{copyCat-package}
 \docType{package}
 \title{
-  What the package does (short line)
+   Uses the depth of short reads in windows across the genome to 
+   identify regions of genomic copy-number gain and loss
 }
 \description{
-  Utilizes multi-core systems with the help of the foreach and doMC
+  Supports multi-core systems with the help of the foreach and doMC
   packages, degrades gracefully to single core systems.
 }
 \details{
   \tabular{ll}{
-    Package: \tab readDepth\cr
+    Package: \tab copyCat\cr
     Type: \tab Package\cr
-    Version: \tab 1.0\cr
-    Date: \tab 2010-05-12\cr
+    Version: \tab 2.0\cr
+    Date: \tab 2013-03-18\cr
     License: \tab Apache\cr
     LazyLoad: \tab yes\cr
   }
@@ -27,7 +28,7 @@
   Maintainer: Chris Miller <chrisamiller@gmail.com>
 }
 \references{
-  TBA
+  TODO
 }
 \keyword{ package }
 \examples{

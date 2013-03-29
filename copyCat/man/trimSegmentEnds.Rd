@@ -10,7 +10,8 @@
   useful for chromosomes like 22, where there are tens of
   megabases that are unmappable at beginning. Without this,
   those regions would be called with the same CN as the first
-  few mappable bins.
+  few mappable bins. This may or may not be desirable behavior,
+  so use with caution
   
 }
 \usage{
@@ -19,10 +20,10 @@
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{segs}{
-    a data frame that is the result of calling rd.cnSegments
+    a data frame that is the result of calling cnSegments()
   }
   \item{rdo}{
-    a readDepth object created with new("rdObject")
+    a read depth object
   }
 }
 \value{
@@ -31,7 +32,7 @@
 \examples{
 
   ##get regions of CN gain and loss
-  #  segs <- rd.cnSegments(x)
+  #  segs <- cnSegments(rdo)
 
   ##trim the segment ends 
   #  trimSegmentEnds(segs, rdo)

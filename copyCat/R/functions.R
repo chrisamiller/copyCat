@@ -39,20 +39,6 @@ getNumReads <- function(inputFile,outputDirectory){
 }
 
 
-
-##--------------------------------------------------
-##  make sure each entrypoint has a corresponding bed file
-##
-verifyFiles <- function(chrs,params){
-  for(i in 1:length(chrs)){
-    filename = paste(params$bedDirectory,"/",chrs[i],".bed",sep="")
-    if(!(file.exists(filename))){
-      stop("file: '",filename,"' does not exist\n")
-    }
-  }
-}
-
-
 ##-------------------------------------------------
 ## sum up the already-stored # of reads
 ##
@@ -111,33 +97,6 @@ combineBins <- function(a,b){
   return(b)
 }
  
-
-##---------------------------------------------------
-## convert chromosome number to chr name
-##
-chrName <- function(num){
-  if(num == 23){ num <- "X"}
-  if(num == 24){ num <- "Y"}
-  
-  return(paste("chr",num,sep=""))  
-}
-
-
-##---------------------------------------------------
-## sum the total lengths of the annotations in a 
-## bed file. This is equal to coverage if annotations
-## are non-overlapping
-##
-bedAnnotationLength <- function(e){
-  if(file.exists(e)){
-    a=scan(gzfile(e),what=0,quiet=TRUE)
-    closeAllConnections()
-    return(sum((a[seq(2,(length(a)),2)]-a[seq(1,(length(a)-1),2)]+1)))
-  }
-  return(0)
-}
-
-
 ##--------------------------------------------------
 ## convert read depth to log2 value,
 ## based on median
@@ -376,241 +335,6 @@ writeAlts <- function(segs,rdo,filename="alts.dat"){
 }
 
 
-
-##------------------------------------------------------------
-## Estimate overdispersion in a set of reads
-## 
-estimateOd <- function(rdo, maxOd=30, histBreaks=10){
-  #get the bins together
-  bins=2^(makeDf(rdo@chrs,rdo@binParams)$score)*rdo@binParams$med
-
-  fracNormal=rdo@binParams$dipPerc
-  
-  ## loop through different overdispersion values, see which one
-  ## fits the data best
-  errs = c();
-  for(i in 1:maxOd){
-    model=rpois.od(length(bins)*fracNormal,median(bins,na.rm=T),i)
-
-    maxBin = max(max(bins),max(model))
-    
-    real.hist = hist(bins, breaks=seq(0,maxBin+histBreaks,histBreaks), 
-      xlim=c(0,median(bins,na.rm=T)*2), col=rgb(1, 0, 0,0.5),
-      main=paste("Read depth distribution - Model overdispersion:",i))
-
-    model.hist = hist(model, breaks=seq(0,maxBin+histBreaks,histBreaks),
-      xlim=c(0,median(bins,na.rm=T)*2), col=rgb(0, 0, 1,0.5),
-      add=T)
-
-    mtext("real=red/model=blue")
-    
-    # here's the fit test - just a simple difference of counts in each bin
-    error = sum(abs(real.hist$counts-model.hist$counts))
-    errs = c(errs,error)    
-  }
-  
-  bestod = which(errs == min(errs))
-
-#  pdf(paste(rdo@params$outputDirectory,"/odfit.pdf",sep=""));
-
-  model=rpois.od(length(bins)*fracNormal,median(bins,na.rm=T),bestod)
-
-  real.hist = hist(bins, breaks=seq(0,maxBin+histBreaks,histBreaks), 
-    xlim=c(0,median(bins,na.rm=T)*2), col=rgb(1, 0, 0,0.5),
-    main=paste("Read depth distribution - Model overdispersion:", bestod))
-  
-  model.hist = hist(model, breaks=seq(0,maxBin+histBreaks,histBreaks),
-    xlim=c(0,median(bins,na.rm=T)*2), col=rgb(0, 0, 1,0.5),
-    add=T)
-
-  mtext("real=red/model=blue")
-
-#  dev.off()
-  if(bestod >= maxOd){
-    return(paste("greater than ",maxOd,sep=""))
-  }
-  return(bestod)
-}
-
-
-
-
-##------------------------------------------------------------
-## Code for pulling down the annotation files from google code
-## and sticking them in the right place
-
-##TODO - fix this to reflect new directory structure
-
-getAnnotations <- function(readLength, sex, genome="hg18", bs=FALSE, annoDir){
-  if(sex!="male" & sex!="female" & sex!="autosomes"){
-    print("'sex' must be either \"male\", \"female\", or \"autosomes\"")
-    return(0)
-  }
-
-  oldloc = getwd()
-  dir.create(annoDir, showWarnings=FALSE)
-#  setwd(annoDir)
-  
-  dlAnnFile <- function(url,outfile){
-    download.file(url, outfile, quiet=TRUE)
-    if(file.exists(outfile)){
-      print(paste(url,"downloaded successfully"))
-      return(1)
-    } else {
-      print(paste("Oops! Couldn't fetch ",url))
-      print("Either you specified a read length or genome build that we don't have annotation")
-      print("files prepared for, or your network connection isn't working.")
-      print("Check the documentation at http://code.google.com/p/readdepth/ for more information")
-      return(0)
-    }
-  }
-
-
-  entryurl=paste("http://readdepth.googlecode.com/files/entrypoints.",genome,".",sex,sep="")
-  entryfile=paste(annoDir,"/entrypoints",sep="")    
-  
-  if(bs){ #bisulfite
-    mapurl = paste("http://readdepth.googlecode.com/files/mapability.bs.readLength",readLength,".",genome,".tar",sep="")
-    mapfile = paste(annoDir,"/mapability.bs.readLength",readLength,".",genome,".tar",sep="")
-    gcurl = paste("http://readdepth.googlecode.com/files/gcWinds.bs.readLength",readLength,".",genome,".tar",sep="")
-    gcfile = paste(annoDir,"/gcWinds.bs.readLength",readLength,".",genome,".tar",sep="")    
-  } else { #normal
-    mapurl = paste("http://readdepth.googlecode.com/files/mapability.readLength",readLength,".",genome,".tar",sep="")
-    mapfile = paste(annoDir,"/mapability.readLength",readLength,".",genome,".tar",sep="")
-    gcurl = paste("http://readdepth.googlecode.com/files/gcWinds.readLength",readLength,".",genome,".tar",sep="")
-    gcfile = paste(annoDir,"/gcWinds.readLength",readLength,".",genome,".tar",sep="")    
-  }
-
-  #download the files, untar them
-  if(dlAnnFile(mapurl, mapfile)){
-    system(paste("tar -xf ",mapfile," -C ",annoDir,"/",sep=""))
-  }
-  
-  if(dlAnnFile(gcurl, gcfile)){
-    system(paste("tar -xf ",gcfile," -C ",annoDir,"/",sep=""))
-  }
-
-  dlAnnFile(entryurl, entryfile)
-
-  setwd(oldloc)
-  ##    system(paste("tar -xf",entryfile,"-C annotations/"))
-#  }
-}
-
-
-##-----------------------------------------------------------
-chooseAnnotationReadLength <- function(readLength, availableReadLengths){
-  diff=sqrt((availableReadLengths-readLength)^2)
-  return(availableReadLengths[tail(which(diff == min(diff)),1)])
-}
-
-
-##-----------------------------------------------------------
-## takes two rd objects and sums the values
-## in their rd columns
-addObjectBins <- function(rdo,rdo2){
-  counts = c();
-  ##for each chromosome  
-  for(chr in rdo@entrypoints$chr){    
-    rdo@chrs[[chr]][["rd"]] = rdo@chrs[[chr]][["rd"]] + rdo2@chrs[[chr]][["rd"]];
-  }
-  return(rdo);
-}
-
-
-
-##-----------------------------------------------------------
-## takes two rd object representing a tumor/normal pair and
-## creates a file suitable for input to CNVHMM
-## This mimics the Bam2CNA functionality
-##
-writeCnahmmInput <- function(nrm,tum){
-  dftum = makeDf(tum@chrs,tum@params)
-  dfnrm = makeDf(nrm@chrs,nrm@params)
-
-  #get rid of the old file if one exists
-  if(file.exists(paste(tum@params$outputDirectory,"/tumor.normal.cn",sep=""))){
-    unlink(paste(tum@params$outputDirectory,"/tumor.normal.cn",sep=""))
-  }
-
-  for(chr in unique(dftum[,1])){
-#    tumcnts = dftum[which(dftum[,1] == chr),]
-#    nrmcnts = dfnrm[which(dfnrm[,1] == chr),]
-#    counts=merge(tumcnts,nrmcnts,by="pos")
-
-#    x = paste("#Chr",chr," running average read count\ttumor:",mean(tumcnts),"\tnormal:",mean(nrmcnts),sep="")
-    x = paste("#Chr",chr," running average read count\ttumor:",tum@binParams$med,"\tnormal:",nrm@binParams$med,sep="")
-    write.table(x, file=paste(tum@params$outputDirectory,"/tumor.normal.cn",sep=""), append=TRUE,
-                quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-  }
-
-  x = "CHR\tPOS\tTUMOR\tNORMAL\tDIFF"
-  write.table(x, file=paste(tum@params$outputDirectory,"/tumor.normal.cn",sep=""), append=TRUE,
-              quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-
-
-  counts=merge(dftum,dfnrm,by=c("chr","pos"))
-  counts = sort(counts,by = ~ +chr +pos)  
-  ratio = sum(counts$score.x)/sum(counts$score.y)
-  
-  for(chr in unique(counts$chr)){
-    ## when calculating diff, downsample the one with the greater number
-    ## of reads so they have comparable coverage
-    tumcnts = counts[which(counts$chr == chr),]$score.x
-    nrmcnts = counts[which(counts$chr == chr),]$score.y
-
-    
-    diffScore = c()
-    if(ratio > 1){
-      diffScore = ((tumcnts*(1-ratio) - nrmcnts)*2)/mean(nrmcnts)
-    } else {
-      diffScore = ((tumcnts - nrmcnts*(ratio))*2)/mean(nrmcnts)
-    }
-
-    ## a = data.frame(chr=dftum[which(dftum[,1]==chr),1],
-    ##            pos=dftum[which(dftum[,1]==chr),2],
-    ##            tum=dftum[which(dftum[,1]==chr),3],
-    ##            nrm=dfnrm[which(dfnrm[,1]==chr),3])
-      
-    a = cbind(counts[which(counts$chr == chr),],diff=diffScore)
-    write.table(a, file=paste(tum@params$outputDirectory,"/tumor.normal.cn",sep=""), append=TRUE,
-                quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-    
-  }
-}
-
-##-----------------------------------------------------------
-## takes one rd object and
-## creates a file suitable for input to CNVHMM
-## This mimics the Bam2CN functionality
-##
-writeCnvhmmInput <- function(tum){
-  dftum = makeDf(tum@chrs,tum@params)
-
-  #get rid of the old file if one exists
-  if(file.exists(paste(tum@params$outputDirectory,"/sample.cn",sep=""))){
-    unlink(paste(tum@params$outputDirectory,"/sample.cn",sep=""))
-  }
-
-  x = paste("#WholeGenome_Median:",tum@binParams$med,sep="")
-  write.table(x, file=paste(tum@params$outputDirectory,"/sample.cn",sep=""), append=TRUE,
-              quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-
-#  x = paste("#2xReadCount:",tum@binParams$med," in ",????sep="")
-#  write.table(x, file=paste(tum@params$outputDirectory,"/sample.cn",sep=""), append=TRUE,
-#              quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE) 
- 
-  x = "CHR\tPOS\tReadCount\tCopyNumber"
-  write.table(x, file=paste(tum@params$outputDirectory,"/sample.cn",sep=""), append=TRUE,
-              quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)
-
-
-  dftum = cbind(dftum$chr, dftum$pos, dftum$score, (dftum$score/tum@binParams$med)*2)
-  write.table(dftum, file=paste(tum@params$outputDirectory,"/sample.cn",sep=""), append=TRUE,
-                quote=FALSE, sep="\t", col.names=FALSE, row.names=FALSE)    
-}
-
-
 ##-----------------------------------------------------------
 ## dumps the parameters to a file
 ##
@@ -622,19 +346,17 @@ dumpParams <- function(rdo){
 
 
 ##-----------------------------------------------------------
-## Author: Kevin Wright
-## with some ideas from Andy Liaw
+## Author: Kevin Wrightnwith some ideas from Andy Liaw
 ## http://tolstoy.newcastle.edu.au/R/help/04/07/1076.html
 
 ## x: A data.frame
 ## by: A one-sided formula using + for ascending and - for descending
 ##     Sorting is left to right in the formula
 
-## Useage is:
+## Usage is:
 ## library(nlme);
 ## data(Oats)
 ## sort(Oats, by= ~nitro-Variety)
-
 sort.data.frame <- function(x, by){
  
     if(by[[1]] != "~")
@@ -674,6 +396,7 @@ sort.data.frame <- function(x, by){
     return(x[do.call("order", calllist), ])
 }
 
+
 ##-----------------------------------------------------------
 ## pull out the subset of reads with a specific read length
 ##
@@ -689,7 +412,6 @@ subsetByReadLength <- function(rdo,length){
   }  
   return(rdo)
 }
-
 
 
 ##-----------------------------------------------------------

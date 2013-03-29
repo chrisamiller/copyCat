@@ -1,5 +1,5 @@
-\name{rd.gcCorrect}
-\alias{rd.gcCorrect}
+\name{gcCorrect}
+\alias{gcCorrect}
 \title{
   readDepth: GC-content correction
 }
@@ -9,7 +9,7 @@
   and adds a "gc" column containing that bin's GC content percentage
 }
 \usage{
-  rd.gcCorrect(rdo, meth=FALSE, outlierPercentage=0.01)
+  gcCorrect(rdo, meth=FALSE, outlierPercentage=0.01)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -25,20 +25,20 @@
   }
   \item{outlierPercentage}{
     Removes the highest and lowest N% of reads before loess correction
-    This prevents overfitting near the extremes, which loess is 
-    susceptible to. Default value is 0.01    
+    This prevents overfitting near the extremes, to which loess is 
+    susceptible. Default value is 0.01
   }
 }
 \details{
-  Assumes that files containing gc content and unmappable regions are in
-  place (see full readDepth documentation for proper directory structure).
+  Assumes that appropriate annotation files are in place (see full
+  copyCat documentation for more information).
 }
 \value{
   returns a rd object with the read depth values altered to reflect
   gc content composition-induced bias.
 }
 \seealso{
-  'readDepth'
+  'getReadDepth'
 }
 
 \examples{
@@ -47,12 +47,9 @@
   #  x <- new("rdObject")
 
   ##fill the bins with reads
-  #  x.reads <- readDepth(x)
+  #  x.reads <- getReadDepth(x)
 
   ##do gc correction on the read counts
-  #  x.map <- rd.mapCorrect(x.reads)
-
-  ##do gc correction on the read counts
-  #  x.gcCorr = rd.gcCorrect(x.map)
+  #  x.gcCorr = gcCorrect(x)
 
 }

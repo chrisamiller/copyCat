@@ -26,7 +26,7 @@ initRdClass <- function(){
 setParams <- function(rdo, annotationDirectory, outputDirectory, inputFile, inputType,
                       maxCores=0, #0 means use all available cores
                       binSize=0,  #0 means let copyCat choose (or infer from bins file)
-                      gcWindowSize=100, fdr=0.01, perLibrary=TRUE, perReadLength=TRUE, readLength=0){
+                      gcWindowSize=100, fdr=0.01, perLibrary=TRUE, perReadLength=TRUE, readLength=0, verbose=FALSE){
   #sanity checking
   if(!(inputType=="bam" | inputType=="bins")){
     print("inputType parameter must be either \"bam\" or \"bins\"")
@@ -42,6 +42,8 @@ setParams <- function(rdo, annotationDirectory, outputDirectory, inputFile, inpu
   ##     stop()
   ##   }
   ## }
+
+  verbose <<- verbose;
   
   #fill the params data frame
   rdo@params <- data.frame(annotationDirectory=annotationDirectory,
@@ -85,110 +87,110 @@ setParams <- function(rdo, annotationDirectory, outputDirectory, inputFile, inpu
 
 
 
-##-------------------------------------------------
-## calculate the appropriate bin size,
-## gain/loss thresholds, number of chromosomes, etc
-##
+## ##-------------------------------------------------
+## ## calculate the appropriate bin size,
+## ## gain/loss thresholds, number of chromosomes, etc
+## ##
 
-calculateBinSize <-function(rdo, overdispersion=3, percCnGain=0.05, percCnLoss=0.05){
-  params = rdo@params
-  entrypoints = rdo@entrypoints
+## calculateBinSize <-function(rdo, overdispersion=3, percCnGain=0.05, percCnLoss=0.05){
+##   params = rdo@params
+##   entrypoints = rdo@entrypoints
   
-  if(params$inputType != "bam"){
-    stop("optimal window size can only be calculated from bam input")
-  }
+##   if(params$inputType != "bam"){
+##     stop("optimal window size can only be calculated from bam input")
+##   }
    
-  numReads = getNumReads(params$inputFile,params$outputDirectory)
+##   numReads = getNumReads(params$inputFile,params$outputDirectory)
   
-  ## get genome size from entrypoints file, adjust by mappability estimates
-  genomeSize = sum(entrypoints$length)
-  mapPerc=sum(entrypoints$mapPerc*entrypoints$length)/sum(entrypoints$length)
-  effectiveGenomeSize = genomeSize * mapPerc
+##   ## get genome size from entrypoints file, adjust by mappability estimates
+##   genomeSize = sum(entrypoints$length)
+##   mapPerc=sum(entrypoints$mapPerc*entrypoints$length)/sum(entrypoints$length)
+##   effectiveGenomeSize = genomeSize * mapPerc
 
-  if(verbose){
-    cat(numReads," total reads\n")
-    cat("genome size:",genomeSize,"\n")
-    cat("genome mapability percentage:",mapPerc,"\n")
-    cat("effectiveGenomeSize:",effectiveGenomeSize,"\n")
-  }
-
-
-  ## median value has to be adjusted if we have chromosomes with single ploidy
-  ## or expected copy number alterations
-  ploidyPerc = ploidyPercentages(effectiveGenomeSize,entrypoints,params)
-
-  if(verbose){
-    cat("expect ",
-        ploidyPerc$haploidPerc*100,"% haploid,",
-        ploidyPerc$diploidPerc*100,"% diploid,",
-        ploidyPerc$triploidPerc*100,"triploid\n")
-  }
-
-  ## est. coverage of genome by reads
-  coverage = numReads * params$readLength / effectiveGenomeSize
-  if(verbose){
-    cat("approx.",coverage," X coverage of mappable genome \n")
-  }
-
-  ## calculate window size based on triploid peak, since it always
-  ## produces larger (more conservative) windows
-  ploidy = 3
-  medAdj = 1
-  if(verbose){
-    if("medAdjustment" %in% names(params)){
-      medAdj = params$medAdjustment
-    }
-  }
-
-  pTrip <- calcWindParams(numReads=numReads,
-                          fdr=params$fdr,
-                          genomeSize=effectiveGenomeSize,
-                          oDisp=params$overDispersion,
-                          ploidy=ploidy,
-                          minSize=params$gcWindowSize,
-                          ploidyPerc=ploidyPerc,
-                          medAdj=medAdj)
+##   if(verbose){
+##     cat(numReads," total reads\n")
+##     cat("genome size:",genomeSize,"\n")
+##     cat("genome mapability percentage:",mapPerc,"\n")
+##     cat("effectiveGenomeSize:",effectiveGenomeSize,"\n")
+##   }
 
 
-  binSize = pTrip$binSize
-  binSize = round(binSize/100)*100
-  med=pTrip$med
-  if(verbose){
-    cat("expected mean: ",numReads/(effectiveGenomeSize/binSize),"\n")
-    cat("adjusted mean: ",med,"\n")
-  }
+##   ## median value has to be adjusted if we have chromosomes with single ploidy
+##   ## or expected copy number alterations
+##   ploidyPerc = ploidyPercentages(effectiveGenomeSize,entrypoints,params)
 
-  ## calculate separation peak for haploid peak
-  pHap = fdrRate(binSize, 1, effectiveGenomeSize, numReads, params$overDispersion, ploidyPerc, medAdj)
+##   if(verbose){
+##     cat("expect ",
+##         ploidyPerc$haploidPerc*100,"% haploid,",
+##         ploidyPerc$diploidPerc*100,"% diploid,",
+##         ploidyPerc$triploidPerc*100,"triploid\n")
+##   }
 
-##   ##plot the output for later review
-##   pdf("output/cnSeparation.pdf")
-##   plotWindows(pTrip$binSize, effectiveGenomeSize, pHap$div, pTrip$div, params$fdr, numReads, params$overDispersion, ploidyPerc, med)
-##   dev.off()
+##   ## est. coverage of genome by reads
+##   coverage = numReads * params$readLength / effectiveGenomeSize
+##   if(verbose){
+##     cat("approx.",coverage," X coverage of mappable genome \n")
+##   }
 
-  rdo@binParams=data.frame(binSize=binSize, lossThresh=pHap$div, gainThresh=pTrip$div, med=med, hapPerc=ploidyPerc$haploidPerc, dipPerc=ploidyPerc$diploidPerc, tripPerc=ploidyPerc$triploidPerc)
+##   ## calculate window size based on triploid peak, since it always
+##   ## produces larger (more conservative) windows
+##   ploidy = 3
+##   medAdj = 1
+##   if(verbose){
+##     if("medAdjustment" %in% names(params)){
+##       medAdj = params$medAdjustment
+##     }
+##   }
 
-  return(rdo)
-}
+##   pTrip <- calcWindParams(numReads=numReads,
+##                           fdr=params$fdr,
+##                           genomeSize=effectiveGenomeSize,
+##                           oDisp=params$overDispersion,
+##                           ploidy=ploidy,
+##                           minSize=params$gcWindowSize,
+##                           ploidyPerc=ploidyPerc,
+##                           medAdj=medAdj)
 
 
-##--------------------------------------------------
-## calculate adjusted genome size, based on the fact that we
-## may have haploid chromosomes and/or expected CN alterations
-ploidyPercentages <- function(effectiveGenomeSize,ents,params){
-  ##first, get the coverage that come from diploid chrs
-  diploidPerc = sum((ents$length*ents$mapPerc)[which(ents$ploidy==2)])/effectiveGenomeSize
-  diploidPerc = diploidPerc - params$percCNLoss
-  diploidPerc = diploidPerc - params$percCNGain
+##   binSize = pTrip$binSize
+##   binSize = round(binSize/100)*100
+##   med=pTrip$med
+##   if(verbose){
+##     cat("expected mean: ",numReads/(effectiveGenomeSize/binSize),"\n")
+##     cat("adjusted mean: ",med,"\n")
+##   }
 
-  ##coverage from haploid chrs
-  haploidPerc = sum((ents$length*ents$mapPerc)[which(ents$ploidy==1)])/effectiveGenomeSize
-  haploidPerc = haploidPerc + params$percCNLoss
+##   ## calculate separation peak for haploid peak
+##   pHap = fdrRate(binSize, 1, effectiveGenomeSize, numReads, params$overDispersion, ploidyPerc, medAdj)
 
-  return(data.frame(haploidPerc=haploidPerc,
-                    diploidPerc=diploidPerc,
-                    triploidPerc=params$percCNGain))
-}
+## ##   ##plot the output for later review
+## ##   pdf("output/cnSeparation.pdf")
+## ##   plotWindows(pTrip$binSize, effectiveGenomeSize, pHap$div, pTrip$div, params$fdr, numReads, params$overDispersion, ploidyPerc, med)
+## ##   dev.off()
+
+##   rdo@binParams=data.frame(binSize=binSize, lossThresh=pHap$div, gainThresh=pTrip$div, med=med, hapPerc=ploidyPerc$haploidPerc, dipPerc=ploidyPerc$diploidPerc, tripPerc=ploidyPerc$triploidPerc)
+
+##   return(rdo)
+## }
+
+
+## ##--------------------------------------------------
+## ## calculate adjusted genome size, based on the fact that we
+## ## may have haploid chromosomes and/or expected CN alterations
+## ploidyPercentages <- function(effectiveGenomeSize,ents,params){
+##   ##first, get the coverage that come from diploid chrs
+##   diploidPerc = sum((ents$length*ents$mapPerc)[which(ents$ploidy==2)])/effectiveGenomeSize
+##   diploidPerc = diploidPerc - params$percCNLoss
+##   diploidPerc = diploidPerc - params$percCNGain
+
+##   ##coverage from haploid chrs
+##   haploidPerc = sum((ents$length*ents$mapPerc)[which(ents$ploidy==1)])/effectiveGenomeSize
+##   haploidPerc = haploidPerc + params$percCNLoss
+
+##   return(data.frame(haploidPerc=haploidPerc,
+##                     diploidPerc=diploidPerc,
+##                     triploidPerc=params$percCNGain))
+## }
 
 
 ##--------------------------------------------------
@@ -214,7 +216,7 @@ addMapability <-function(entrypoints, annoDir, readLength=100){
       a=scan(gzfile(filename),what=0,quiet=TRUE)
       return(sum(a)/length(a))
     }
-
+    e=NULL;
     tmp=foreach(e=entrypoints$chr, .combine="append") %do%{
       c(e,sumMaps(paste(mapDir,e,".dat.gz",sep="")))
     }
@@ -237,124 +239,4 @@ addMapability <-function(entrypoints, annoDir, readLength=100){
   closeAllConnections()
   entrypoints$mapPerc= as.numeric(entrypoints$mapPerc)
   return(entrypoints)
-}
-
-
-
-##--------------------------------------------------
-## calculate FDR rate and optimal dividing line
-##
-fdrRate <- function(windSize,ploidy,genomeSize,numReads,oDisp,ploidyPerc, medAdj){ #nullThis,nullBoth){
-  numWinds <- genomeSize/windSize
-
-#  med <- numReads/numWinds
-  med <- (numReads/(((genomeSize*ploidyPerc$haploidPerc/2) +
-                     (genomeSize*ploidyPerc$triploidPerc*3/2) +
-                     (genomeSize*ploidyPerc$diploidPerc)) / windSize))*medAdj
-
-  medAlt <- med*(ploidy/2)
-
-  divFdr=NULL
-  if(ploidy < 2){
-    divFdr = dividePeaks(medAlt, med, numWinds*ploidyPerc$haploidPerc, numWinds*ploidyPerc$diploidPerc, oDisp)
-  } else {
-    divFdr = dividePeaks(med, medAlt, numWinds*ploidyPerc$diploidPerc, numWinds*ploidyPerc$triploidPerc, oDisp)
-  }
-  return(data.frame(fdr=divFdr$fdr, div=divFdr$div, med=med))
-}
-
-
-##--------------------------------------------------
-## find the optimal dividing line between the
-## two specified peaks. Assumes a poisson
-## distribution with overdispersion
-##
-dividePeaks <- function(amed,bmed,aNum,bNum,oDisp){
-  thresholds =(amed+1):(bmed-1)
-
-  mislabeledWinds <- function(thresh){
-    low=(1-pnbinom(thresh,size=(amed/oDisp-1),mu=amed))*aNum
-    high=(pnbinom(thresh,size=(bmed/oDisp-1),mu=bmed))*bNum
-    return(low+high)
-  }
-
-  vals=sapply(thresholds,mislabeledWinds)
-  lows = which(vals == min(vals))
-
-  ##choose the low point closest
-  ##to the halfway point
-  diffFromMed = abs((lows+amed)-(amed+bmed/2))
-  pos = which(diffFromMed == min(diffFromMed))
-  if(length(pos) > 1){
-    pos = pos[1]
-  }
-  return(data.frame(div=lows[pos]+amed,fdr=mislabeledWinds(lows[pos]+amed)/(aNum+bNum)))
-}
-
-
-
-#-------------------------------------------------
-# Calculates the window size that conforms to the
-# given FDR rate and the threshold that best
-# separates the peaks of ploidy
-#
-calcWindParams <- function(numReads,fdr,genomeSize,oDisp, ploidy, minSize, ploidyPerc, medAdj, startDiv=100){#nullThis, nullBoth, startDiv=100){
-  ## answer has to be this close to the FDR rate (on the lower side)
-  tolerance = 0.005
-  #starting point for search
-  windSize = genomeSize/startDiv
-  divider = NULL
-
-  ## first, halve size until we get above FDR threshold
-  found <- FALSE
-  p <- fdrRate(windSize,ploidy,genomeSize,numReads,oDisp,ploidyPerc, medAdj)
-
-  if(p$fdr > fdr){
-    stop("not enough reads to achieve the desired FDR rate")
-  }
-
-  while((found == FALSE) & (windSize > minSize)){
-    windSize <- round(windSize / 2)
-    p <- fdrRate(windSize,ploidy,genomeSize,numReads,oDisp,ploidyPerc, medAdj)
-
-    if(p$fdr > fdr){
-      found = TRUE
-    }
-  }
-
-  if(windSize > minSize){
-    ## zero in on a size that's within the desired parameters
-    found = FALSE
-    adj = windSize/2
-
-    while((found == FALSE) & (windSize > minSize)){
-      if(p$fdr > fdr){
-        windSize <- round(windSize + adj)
-        p <- fdrRate(windSize,ploidy,genomeSize,numReads,oDisp,ploidyPerc, medAdj)
-
-      }else if(p$fdr < (fdr - tolerance)){
-        windSize <- round(windSize - adj)
-        p <- fdrRate(windSize,ploidy,genomeSize,numReads,oDisp,ploidyPerc, medAdj)
-
-      } else{
-        found = TRUE
-      }
-      adj <- adj/2
-    }
-  }
-
-  ##if the window size is below the minimum size, have to
-  ##recalculate params
-  if(windSize < minSize){
-    windSize = minSize
-  } else {
-    ## round to multiple of minSize
-    windSize = floor(windSize/minSize)*minSize
-  }
-
-  p <- fdrRate(windSize,ploidy,genomeSize,numReads,oDisp,ploidyPerc, medAdj)
-  med=p$med
-  div=p$div
-
-  return(data.frame(binSize=windSize,div=div,med=med))
 }

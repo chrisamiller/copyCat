@@ -1,7 +1,7 @@
 ##-------------------------------------------------
 ## gc correction functions
 ##
-gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
+gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01, resolution=0.001){
   if(verbose){
     cat("correcting for GC bias",date(),"\n")
   }
@@ -43,7 +43,7 @@ gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
       if(verbose){
         print(paste("correcting library ",i," (",name,")",sep=""))
       }
-      gcAdj = loessCorrect(rdo2,i,len,name,outlierPercentage=outlierPercentage,type="gc")
+      gcAdj = loessCorrect(rdo2,i,len,name,outlierPercentage=outlierPercentage,type="gc", corrResolution=resolution)
       for(j in rdo2@entrypoints$chr){
         rdo2@chrs[[j]][[name]]= gcAdj[[j]]
       }
@@ -67,7 +67,7 @@ gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01){
 ##-------------------------------------------------
 ## mapability correction functions
 ##
-mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resolution=0.001, skipCorrection=FALSE){
+mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resolution=0.01, skipCorrection=FALSE){
 
   ##have to correct each read length individually
   for(len in unique(rdo@readInfo$readlength)){
@@ -560,50 +560,4 @@ makeCorrBinsMedian <- function(rdo,libNum,windSize,type){
     zcnt[[i]] = sum(bins[bins$zbin == i,]$count, na.rm=T)
   }
   return(data.frame(val=myBin,avgreads=zmed, numreads=zcnt))
-}
-
-
-## ##--------------------------------------------------------
-## ##
-## ##
-## makeGcCorrBins <- function(bin,libNum,windSize,chr){
-##   ##create vectors for gc and number of reads
-##   gcBin <- c()
-##   numReads <- c()
-##   numHits <- c()
-##   for(i in 1:((1/windSize)+1)){
-##     gcBin[[i]] <- ((i*windSize)-windSize)
-##     numReads[[i]] <- NA
-##     numHits[[i]] <- 0
-##   }
-
-##   ##fill the vectors
-##   for(i in 1:length(bin$gc)){
-##     if(!(is.na(bin[,libNum][[i]]))){
-##       val <- round(bin$gc[[i]]/windSize)+1
-##       if(!is.na(val)){
-##         ##initialize to zero the first time
-##         if(is.na(numReads[[val]])){
-##           numReads[[val]] <- 0
-##         }
-##         numReads[[val]] <- numReads[[val]] + bin[,libNum][[i]]
-##         numHits[[val]] <- numHits[[val]] + 1
-##       }
-##     }
-##   }
-##   return(data.frame(gc=gcBin,avgreads=numReads/numHits,numreads=numReads))
-## }
-
-
-
-
-
-##--------------------------------------------------
-## does what it says on the box
-##
-replaceNAsWZeros <- function(x){
-  if(is.na(x)){
-    return(0)
-  }
-  return(x)
 }

@@ -17,7 +17,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
     outputDirectory=outputDirectory, inputType=inputType, maxCores=maxCores,
     inputFile=inputFile, binSize=binSize, perReadLength=perReadLength,
     perLibrary=perLibrary, readLength=readLength, gcWindowSize=gcWindowSize,
-    fdr=fdr)
+    fdr=fdr, verbose=verbose)
   ##bin the reads
   rdo=getReadDepth(rdo)
   ##correct for mapability
@@ -66,7 +66,8 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   rdo = setParams(rdo, annotationDirectory=annotationDirectory,
     outputDirectory=outputDirectory, inputType=inputType,
     inputFile=normal, binSize=binSize, perReadLength=perReadLength,
-    perLibrary=perLibrary, readLength=readLength, maxCores=maxCores)
+    perLibrary=perLibrary, readLength=readLength, maxCores=maxCores,
+    verbose=verbose)
   rdo@params$prefix="normal";
   
   ##bin the reads
