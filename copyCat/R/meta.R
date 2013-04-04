@@ -36,7 +36,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
 
   ##segment the data using CBS
   segs = cnSegments(rdo)
-  ##set gain and loss thresholds  
+  ##set gain and loss thresholds
   rdo@binParams$gainThresh = 2.5
   rdo@binParams$lossThresh = 1.5
   ##write some output
@@ -69,15 +69,15 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     perLibrary=perLibrary, readLength=readLength, maxCores=maxCores,
     verbose=verbose)
   rdo@params$prefix="normal";
-  
+
   ##bin the reads
   rdo=getReadDepth(rdo)
 
   ##no correction for mapability, but still remove low-mapability regions
-  ##from consideration 
-  rdo=mapCorrect(rdo,skipCorrection=TRUE);  
+  ##from consideration
+  rdo=mapCorrect(rdo,skipCorrection=TRUE);
   ##correct for gc-content
-  if(doGcCorrection){    
+  if(doGcCorrection){
     rdo=gcCorrect(rdo)
   }
   ##merge the corrected counts into one column
@@ -96,7 +96,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   rdo2=getReadDepth(rdo2)
 
   ##no correction for mapability, but still remove low-mapability regions
-  ##from consideration 
+  ##from consideration
   rdo2=mapCorrect(rdo2,skipCorrection=TRUE);
   ##correct for gc-content
   if(doGcCorrection){
@@ -112,17 +112,17 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ## use samtools to find cn-neutral regions and calc median value
   ##tumor
   if(!(is.null(tumorSamtoolsFile))){
-    rdo2@params$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+    rdo2@params$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,2000000,peakWiggle=4,plot=TRUE)
   } else {
     rdo2@params$med = getMedianReadCount(rdo2)
   }
   ##normal
   if(!(is.null(normalSamtoolsFile))){
-    rdo@params$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+    rdo@params$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,2000000,peakWiggle=4,plot=TRUE)
   } else {
     rdo@params$med = getMedianReadCount(rdo)
   }
-  
+
   ##segment the paired data using CBS
   segs = cnSegments.paired(rdo, rdo2, minWidth=minWidth)
   ##set gain and loss thresholds
@@ -134,13 +134,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
 
 
   if(outputSingleSample){
-    #tumor
-    if(!(is.null(tumorSamtoolsFile))){
-      rdo2@params$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
-    } else {
-      rdo2@params$med = getMedianReadCount(rdo2)
-    }
-    ##segment the paired data using CBS
+    ##segment the non-paired data using CBS
     segs = cnSegments(rdo2)
     ##set gain and loss thresholds
     rdo2@binParams$gainThresh = 2.5
@@ -149,7 +143,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     writeSegs(segs,rdo2,"segs.singleSample.tumor.dat")
     writeAlts(segs,rdo2,"alts.singleSample.tumor.dat")
 
-    
+
     #normal
     if(!(is.null(normalSamtoolsFile))){
       rdo@params$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
@@ -164,10 +158,10 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     ##write some output
     writeSegs(segs,rdo,"segs.singleSample.normal.dat")
     writeAlts(segs,rdo,"alts.singleSample.normal.dat")
-    
+
   }
-  
+
   dumpParams(rdo)
   dumpParams(rdo2)
-    
+
 }

@@ -91,7 +91,9 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
     ##find bins with mapability below threshold, set value to NA
     for(chr in rdo2@entrypoints$chr){
       for(i in 1:rdo2@binParams$numLibs){
-        rdo2@chrs[[chr]][which(rdo2@chrs[[chr]]$map < minMapability),i] = NA
+        if(length(which(rdo2@chrs[[chr]]$map < minMapability)) > 0){
+          rdo2@chrs[[chr]][which(rdo2@chrs[[chr]]$map < minMapability),i] = NA
+        }
       }
     }
 
@@ -286,7 +288,6 @@ returnOutliers <- function(results,rmlist,preOutliers){
   for(i in 1:length(segs)){
     ##edge case: beginning
     if(1 %in% segs[[i]]){
-
       ##can't avg, get the  of the closest non-outlier values (high)
       hival = preOutliers[(which(preOutliers$val == preOutliers$val[max(segs[[i]])])+1),]$val
       ##get adjustment for that nearby window

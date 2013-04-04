@@ -1,7 +1,7 @@
 library('methods')
 library('foreach')
 library('doMC')
-registerDoMC()
+#registerDoMC()
 library('IRanges')
 
 ##-------------------------------------------------
@@ -18,6 +18,7 @@ initRdClass <- function(){
             .Object@chrs=as.list(c())
             return(.Object)              
           })
+  registerDoMC()  
 }
 
 ##-------------------------------------------------

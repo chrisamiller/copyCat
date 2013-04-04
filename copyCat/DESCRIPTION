@@ -1,6 +1,6 @@
 Package: copyCat
 Title: Find regions of genomic copy number loss and gain from short reads
-Version: 1.5.2
+Version: 1.5.3
 Author: Chris Miller
 Description: Uses the depth of short reads in windows across the genome to 
 	     identify regions of genomic copy-number gain and loss
@@ -8,4 +8,4 @@ Maintainer: Chris Miller <chrisamiller@gmail.com>
 LazyLoad: yes
 License: Apache License 2.0 | file LICENSE
 Depends: methods, foreach, doMC, IRanges, DNAcopy
-Packaged: 2013-02-18 12:02:13 PM; cmiller
+Packaged: 2013-04-04 10:21:01 AM; cmiller
