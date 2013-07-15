@@ -56,7 +56,8 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     perReadLength=TRUE, readLength=0, verbose=TRUE,
                                     outputSingleSample=FALSE, tumorSamtoolsFile=NULL,
                                     normalSamtoolsFile=NULL, dumpBins=FALSE, minWidth=3,
-                                    doGcCorrection=TRUE){
+                                    doGcCorrection=TRUE, gapsToRemove=NULL, rDataFile=NULL,
+                                    minMapability=0.60){
 
   verbose <<- verbose
 
@@ -75,7 +76,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
 
   ##no correction for mapability, but still remove low-mapability regions
   ##from consideration
-  rdo=mapCorrect(rdo,skipCorrection=TRUE);
+  rdo=mapCorrect(rdo,skipCorrection=TRUE,minMapability=minMapability);
   ##correct for gc-content
   if(doGcCorrection){
     rdo=gcCorrect(rdo)
@@ -83,6 +84,12 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##merge the corrected counts into one column
   rdo=mergeLibraries(rdo)
 
+  #remove gaps
+  if(!(is.null(gapsToRemove))){
+    rdo=removeGaps(rdo,gapsToRemove)
+  }
+
+  
   ##create the object
   rdo2 = new("rdObject")
   ##set the parameters
@@ -97,7 +104,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
 
   ##no correction for mapability, but still remove low-mapability regions
   ##from consideration
-  rdo2=mapCorrect(rdo2,skipCorrection=TRUE);
+  rdo2=mapCorrect(rdo2,skipCorrection=TRUE,minMapability=minMapability);
   ##correct for gc-content
   if(doGcCorrection){
     rdo2=gcCorrect(rdo2)
@@ -105,6 +112,11 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##merge the corrected counts into one column
   rdo2=mergeLibraries(rdo2)
 
+  #remove gaps
+  if(!(is.null(gapsToRemove))){
+    rdo2=removeGaps(rdo2,gapsToRemove)
+  }
+  
   if(dumpBins){
     writePairedBins(rdo,rdo2)
   }
@@ -164,4 +176,8 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   dumpParams(rdo)
   dumpParams(rdo2)
 
+  if(!is.null(rDataFile)){
+    save.image(paste(outputDirectory,rDataFile,sep=""))
+  }
+  
 }

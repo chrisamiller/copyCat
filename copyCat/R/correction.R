@@ -562,3 +562,42 @@ makeCorrBinsMedian <- function(rdo,libNum,windSize,type){
   }
   return(data.frame(val=myBin,avgreads=zmed, numreads=zcnt))
 }
+
+##----------------------------------------------------------------------------------
+## remove counts in that overlap the gaps specified in a file
+##
+removeGapCounts <- function(rdo,gapsFile){
+  gaps = read.table(gapsFile);
+  names(gaps) = c("chr","st","sp")
+
+  binSize = rdo@params$binSize
+
+  #this could be vectorized later for speed
+  for(i in 1:length(gaps[,1])){
+    windst = round(gaps[i,2]/binSize)*binSize
+    windsp = (round(gaps[i,3]/binSize)*binSize)+1
+
+    cols = grep("^rd.",names(rdo@chrs[[1]]))
+    rdo@chrs[[gaps[i,1]]][windst:windsp,cols]
+  }
+}
+
+
+##----------------------------------------------------------------------------------
+## remove counts in that overlap the gaps specified in a file
+##
+coverageFilter <- function(rdo){
+  gaps = read.table(gapsFile);
+  names(gaps) = c("chr","st","sp")
+
+  binSize = rdo@params$binSize
+
+  #this could be vectorized later for speed
+  for(i in 1:length(gaps[,1])){
+    windst = round(gaps[i,2]/binSize)*binSize
+    windsp = (round(gaps[i,3]/binSize)*binSize)+1
+
+    cols = grep("^rd.",names(rdo@chrs[[1]]))
+    rdo@chrs[[gaps[i,1]]][windst:windsp,cols]
+  }
+}
