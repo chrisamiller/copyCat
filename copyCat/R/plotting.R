@@ -76,15 +76,13 @@ plotWindows <- function(windowSize, genomeSize, divGain, divLoss, fdr, numReads,
   abline(v=divGain,col="green")
   abline(v=divLoss,col="green")
 }
-
-##----------------------------------------------
-## plot the segments for a given chromosome
+##---------------------------------------------------------
+## Internal function to wrap plotting
 ##
-plotSegs <- function(rdo,segs,chr){
-  pdf(paste(rdo@params$outputDirectory,"/plots/points.",chr,".pdf",sep=""),width=12,height=4)
+doSegPlot <- function(rdo,segs,chr){
   st = 1
   sp = rdo@entrypoints[which(rdo@entrypoints$chr == chr),]$length
-  ymax=3 #multiplier for the median
+  ymax=3 #multiplied by the median to get height
   med = rdo@binParams$med
   
   winds = rdo@chrs[[chr]]$rd
@@ -96,8 +94,44 @@ plotSegs <- function(rdo,segs,chr){
   plot(pos,winds,ylab="number of reads", xlab="position (bp)", ylim=c(0,(median(winds,na.rm=T)*ymax)), pch=18, col=rgb(0,0,0,0.5), main=paste("Chr",chr,sep=""))
 
   abline(h=med,col="blue")
-  abline(h=(rdo@binParams$gainThresh/2)*med,col="green")
-  abline(h=(rdo@binParams$lossThresh/2)*med,col="green")
+  abline(h=(rdo@binParams$gainThresh/2)*med,col=rgb(0,0.5,0,0.5))
+  abline(h=(rdo@binParams$lossThresh/2)*med,col=rgb(0,0.5,0,0.5))
+
+  asegs = segs[which(segs$chrom == chr),]
+  for(i in 1:length(asegs[,1])){
+    segments(asegs[i,2],(asegs[i,5]*(med/2)),asegs[i,3],(asegs[i,5]*(med/2)), col="red",lwd=3)
+  }
+  
+  par(new=T)
+  plot(-10000,-10000, ylim=c(0,(median(winds,na.rm=T)*(ymax*2))/med), xlim=c(1,sp), axes=F,xlab="", ylab="")
+  axis(4, ylim=c(0,(median(winds,na.rm=T)*(ymax*2))/med), col="red",col.axis="red")
+  abline(h=seq(0,100,1),col="grey50",lty=3)
+  abline(v=seq(1,sp,2000000),col="grey50",lty=2)
+  mtext("Copy Number",side=4,col="red",line=2.5)  
+
+}
+
+##----------------------------------------------
+## plot the segments for a given chromosome
+##
+plotSegs <- function(rdo,segs,chr){
+  pdf(paste(rdo@params$outputDirectory,"/plots/points.",chr,".pdf",sep=""),width=12,height=4)
+  st = 1
+  sp = rdo@entrypoints[which(rdo@entrypoints$chr == chr),]$length
+  ymax=3 #multiplied by the median to get height
+  med = rdo@binParams$med
+  
+  winds = rdo@chrs[[chr]]$rd
+  binSize = rdo@binParams$binSize  
+  pos = seq(binSize/2,(((length(winds)-1)*binSize)-binSize/2),binSize)
+  pos = append(pos,sp)
+  
+  par(mar=c(5, 4, 4, 4) + 0.1)
+  plot(pos,winds,ylab="number of reads", xlab="position (bp)", ylim=c(0,(median(winds,na.rm=T)*ymax)), pch=18, col=rgb(0,0,0,0.5), main=paste("Chr",chr,sep=""))
+
+  abline(h=med,col="blue")
+  abline(h=(rdo@binParams$gainThresh/2)*med,col=rgb(0,0.5,0,0.5))
+  abline(h=(rdo@binParams$lossThresh/2)*med,col=rgb(0,0.5,0,0.5))
 
   asegs = segs[which(segs$chrom == chr),]
   for(i in 1:length(asegs[,1])){
@@ -117,11 +151,41 @@ plotSegs <- function(rdo,segs,chr){
 ##----------------------------------------------
 ## plot the segments for a given chromosome
 ##
-plotSegsPaired <- function(rdo.ref, rdo.test, segs,chr){
-  pdf(paste(rdo@params$outputDirectory,"/plots/points.",chr,".paired.pdf",sep=""),width=12,height=4)
+plotSegsPairedLog <- function(rdo.ref, rdo.test, segs,chr){
+  pdf(paste(rdo@params$outputDirectory,"/plots/points.",chr,".paired.log.pdf",sep=""),width=12,height=4)
   st = 1
   sp = rdo@entrypoints[which(rdo@entrypoints$chr == chr),]$length
-  ymax=8
+  ymax=
+
+  df = makeDfLogPaired(rdo.ref,rdo.test)
+  df = df[df$chr==chr,]
+  df$score = (2^df$score)*2
+  par(mar=c(5, 4, 4, 4) + 0.1)
+  plot(df$pos,df$score,ylab="log2 ratio", xlab="position (bp)", ylim=c(0,ymax), pch=18, col=rgb(0,0,0,0.5), main=paste("Chr",chr,sep=""),plot.first=abline(h=seq(0,100,1),col="grey50",lty=3))
+
+  abline(h=2,col="blue")
+  abline(h=rdo@binParams$gainThresh,col="green")
+  abline(h=rdo@binParams$lossThresh,col="green")
+
+  asegs = segs[which(segs$chrom == chr),]
+  for(i in 1:length(asegs[,1])){
+    segments(asegs[i,2], asegs[i,5], asegs[i,3], asegs[i,5], col="red", lwd=3)
+  }
+  
+  abline(v=seq(1,sp,2000000),col="grey50",lty=2)
+  
+  dev.off()
+}
+
+##----------------------------------------------
+## plot the segments for a given chromosome
+##
+plotSegsPaired <- function(rdo.ref, rdo.test, segs,chr){
+  pdf(paste(rdo@params$outputDirectory,"/plots/points.",chr,".paired.pdf",sep=""),width=12,height=8)
+  
+  st = 1
+  sp = rdo@entrypoints[which(rdo@entrypoints$chr == chr),]$length
+  ymax=3 #multiplier to median
 
   df = makeDfLogPaired(rdo.ref,rdo.test)
   df = df[df$chr==chr,]
