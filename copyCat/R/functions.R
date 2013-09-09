@@ -217,7 +217,7 @@ makeDfLogPaired <- function(nrm,tum){
   dftum = makeDf(tum@chrs,tum@params)
   dfnrm = makeDf(nrm@chrs,nrm@params)
   counts=merge(dftum,dfnrm,by=c("chr","pos"))
-  counts = sort(counts,by = ~ +chr +pos)  
+  counts = counts[with(counts, order(chr,pos)), ]
   
   counts$score.x = counts$score.x/tum@binParams$med
   counts$score.y = counts$score.y/nrm@binParams$med
@@ -234,7 +234,7 @@ makeDfPaired <- function(nrm,tum){
   dftum = makeDf(tum@chrs,tum@params)
   dfnrm = makeDf(nrm@chrs,nrm@params)
   counts=merge(dftum,dfnrm,by=c("chr","pos"))
-  counts = sort(counts,by = ~ +chr +pos)  
+  counts = counts[with(counts, order(chr,pos)), ]
   
   counts$score.x = counts$score.x/tum@binParams$med
   counts$score.y = counts$score.y/nrm@binParams$med
