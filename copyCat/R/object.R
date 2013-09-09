@@ -18,7 +18,6 @@ initRdClass <- function(){
             .Object@chrs=as.list(c())
             return(.Object)              
           })
-  registerDoMC()  
 }
 
 ##-------------------------------------------------
@@ -204,7 +203,7 @@ setParams <- function(rdo, annotationDirectory, outputDirectory, inputFile, inpu
 ##
 addMapability <-function(entrypoints, annoDir, readLength=100){
   ##first, we need the mappable regions
-  annodir = getAnnoDir(annoDir, readlength)
+  annodir = getAnnoDir(annoDir, readLength)
   mapTotalFileName = paste(annodir,"/mapability/totalMappablePerc",sep="")
   mapDir = paste(annoDir,"/readlength.",readLength,"/mapability/",sep="")
   mapTots = 0

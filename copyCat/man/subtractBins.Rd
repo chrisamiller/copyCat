@@ -1,5 +1,5 @@
 \name{subtractBins}
-\alias{subtractBns}
+\alias{subtractBins}
 \title{
   subtractBins
 }
@@ -8,7 +8,7 @@
   second from the first (using the rd column)
 }
 \usage{
-  subtractBins(rdo1,rdo2)
+  subtractBins(rdo,rdo2,normalization=FALSE)
 }
 \arguments{
   \item{rdo}{
@@ -17,13 +17,14 @@
   \item{rdo2}{
     a readDepth object
   }
+  \item{normalization}{
+    do normalization of the read counts
+  }
 }
 \value{
   an rd object identical to the first rd object, except that the read
   depth in the rd column is the difference between the rd columns from the two
   objects.
-}
-\seealso{
 }
 
 \examples{

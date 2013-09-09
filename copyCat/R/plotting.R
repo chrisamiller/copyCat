@@ -152,9 +152,9 @@ plotSegs <- function(rdo,segs,chr){
 ## plot the segments for a given chromosome
 ##
 plotSegsPairedLog <- function(rdo.ref, rdo.test, segs,chr){
-  pdf(paste(rdo@params$outputDirectory,"/plots/points.",chr,".paired.log.pdf",sep=""),width=12,height=4)
+  pdf(paste(rdo.ref@params$outputDirectory,"/plots/points.",chr,".paired.log.pdf",sep=""),width=12,height=4)
   st = 1
-  sp = rdo@entrypoints[which(rdo@entrypoints$chr == chr),]$length
+  sp = rdo.ref@entrypoints[which(rdo.ref@entrypoints$chr == chr),]$length
   ymax=
 
   df = makeDfLogPaired(rdo.ref,rdo.test)
@@ -164,8 +164,8 @@ plotSegsPairedLog <- function(rdo.ref, rdo.test, segs,chr){
   plot(df$pos,df$score,ylab="log2 ratio", xlab="position (bp)", ylim=c(0,ymax), pch=18, col=rgb(0,0,0,0.5), main=paste("Chr",chr,sep=""),plot.first=abline(h=seq(0,100,1),col="grey50",lty=3))
 
   abline(h=2,col="blue")
-  abline(h=rdo@binParams$gainThresh,col="green")
-  abline(h=rdo@binParams$lossThresh,col="green")
+  abline(h=rdo.ref@binParams$gainThresh,col="green")
+  abline(h=rdo.ref@binParams$lossThresh,col="green")
 
   asegs = segs[which(segs$chrom == chr),]
   for(i in 1:length(asegs[,1])){
@@ -181,10 +181,10 @@ plotSegsPairedLog <- function(rdo.ref, rdo.test, segs,chr){
 ## plot the segments for a given chromosome
 ##
 plotSegsPaired <- function(rdo.ref, rdo.test, segs,chr){
-  pdf(paste(rdo@params$outputDirectory,"/plots/points.",chr,".paired.pdf",sep=""),width=12,height=8)
+  pdf(paste(rdo.ref@params$outputDirectory,"/plots/points.",chr,".paired.pdf",sep=""),width=12,height=8)
   
   st = 1
-  sp = rdo@entrypoints[which(rdo@entrypoints$chr == chr),]$length
+  sp = rdo.ref@entrypoints[which(rdo.ref@entrypoints$chr == chr),]$length
   ymax=3 #multiplier to median
 
   df = makeDfLogPaired(rdo.ref,rdo.test)
@@ -194,8 +194,8 @@ plotSegsPaired <- function(rdo.ref, rdo.test, segs,chr){
   plot(df$pos,df$score,ylab="log2 ratio", xlab="position (bp)", ylim=c(0,ymax), pch=18, col=rgb(0,0,0,0.5), main=paste("Chr",chr,sep=""),plot.first=abline(h=seq(0,100,1),col="grey50",lty=3))
 
   abline(h=2,col="blue")
-  abline(h=rdo@binParams$gainThresh,col="green")
-  abline(h=rdo@binParams$lossThresh,col="green")
+  abline(h=rdo.ref@binParams$gainThresh,col="green")
+  abline(h=rdo.ref@binParams$lossThresh,col="green")
 
   asegs = segs[which(segs$chrom == chr),]
   for(i in 1:length(asegs[,1])){

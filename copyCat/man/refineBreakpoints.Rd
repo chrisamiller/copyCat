@@ -1,5 +1,5 @@
-\name{rd.matchBreakpoints}
-\alias{rd.matchBreakpoints}
+\name{refineBreakpoints}
+\alias{refineBreakpoints}
 \title{
   refine edges of CNAs by matching them with nearby breakpoints
 }
@@ -9,7 +9,7 @@
   regions by matching them with nearby breakpoints. 
 }
 \usage{
-  rd.matchBreakpoints(rdo,segs)
+  refineBreakpoints(rdo,segs)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

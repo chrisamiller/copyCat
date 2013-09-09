@@ -1,5 +1,6 @@
 \name{functions}
 \alias{addMapability}
+\alias{addBins}
 \alias{balancedCenter}
 \alias{binGC}
 \alias{binParams}
@@ -33,8 +34,22 @@
 \alias{makeMapDf}
 \alias{plotGcLoess}
 \alias{plotMapLoess}
-\alias{sort.data.frame}
 \alias{replaceReadCounts}
+\alias{addBins}
+\alias{combinePercBins}
+\alias{coverageFilter}
+\alias{doSegPlot}
+\alias{getWindowBins}
+\alias{mergeLibraries}
+\alias{plotSegsPaired}
+\alias{plotSegsPairedLog}
+\alias{removeGapCounts}
+\alias{runPairedSampleAnalysis}
+\alias{runSingleSampleAnalysis}
+\alias{setParams}
+\alias{subsetByReadLength}
+\alias{writeBins}
+\alias{writePairedBins}
 \title{
   readDepth Functions
 }

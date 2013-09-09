@@ -4,7 +4,7 @@
 ## adjusts segment edges if there is exactly one breakpoint 
 ## that matches.
 
-refineBreakpoints <- function(rdo,segs){
+refineBreakpoints <- function(rdo, segs){
 
   ## read in bps from file
   bps <- read.table(paste("annotations/breakpoints.dat",sep=""), sep="\t")
@@ -19,6 +19,7 @@ refineBreakpoints <- function(rdo,segs){
   bplen <<- c()
   
   ##match them up with the edges of segments
+  chr = NULL
   corrSegs = foreach(chr=names(which(table(altSegs$chrom)!=0)), .combine="rbind") %do% {
     breakPointInt(rdo, bps[which(bps$V1==chr),], altSegs[which(altSegs$chrom == chr),], chr) 
   }

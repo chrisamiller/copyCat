@@ -8,7 +8,7 @@
   the file "output/alts.dat"
 }
 \usage{
-  writeAlts(segs, rdo)
+  writeAlts(segs, rdo, filename="alts.dat")
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -17,6 +17,9 @@
   }
   \item{rdo}{
     a readDepth object created with new("rdObject")
+  }
+  \item{filename}{
+    the filename to which the output will be written
   }
 }
 \examples{

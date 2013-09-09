@@ -18,8 +18,3 @@
 \value{
   no return value
 }
-\seealso{
-}
-
-\examples{
-}

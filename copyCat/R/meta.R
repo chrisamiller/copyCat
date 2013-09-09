@@ -10,6 +10,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
                                     verbose=TRUE){
 
   verbose <<- verbose
+  registerDoMC()
   ##create the object
   rdo = new("rdObject")
   ##set the parameters
@@ -56,11 +57,11 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     perReadLength=TRUE, readLength=0, verbose=TRUE,
                                     outputSingleSample=FALSE, tumorSamtoolsFile=NULL,
                                     normalSamtoolsFile=NULL, dumpBins=FALSE, minWidth=3,
-                                    doGcCorrection=TRUE, gapsToRemove=NULL, rDataFile=NULL,
+                                    doGcCorrection=TRUE, rDataFile=NULL,
                                     minMapability=0.60){
 
   verbose <<- verbose
-
+  registerDoMC()  
   ##create the object
   rdo = new("rdObject")
   ##set the parameters
@@ -84,12 +85,6 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##merge the corrected counts into one column
   rdo=mergeLibraries(rdo)
 
-  #remove gaps
-  if(!(is.null(gapsToRemove))){
-    rdo=removeGaps(rdo,gapsToRemove)
-  }
-
-  
   ##create the object
   rdo2 = new("rdObject")
   ##set the parameters
@@ -112,11 +107,6 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##merge the corrected counts into one column
   rdo2=mergeLibraries(rdo2)
 
-  #remove gaps
-  if(!(is.null(gapsToRemove))){
-    rdo2=removeGaps(rdo2,gapsToRemove)
-  }
-  
   if(dumpBins){
     writePairedBins(rdo,rdo2)
   }

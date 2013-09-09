@@ -45,8 +45,6 @@
   a number that represents the median depth of coverage in copy-number
   neutral sites.
 }
-\seealso{
-}
 
 \examples{
   # tumorSamtoolsFile = "samtools.mpileup.output" 

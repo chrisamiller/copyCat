@@ -2,17 +2,17 @@
 ## Use circular binary segmentation to merge adjacent
 ## windows and identify breakpoints
 ##
-cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=3,alpha=0.01,undoSD=2,rmGaps=TRUE){ 
+cnSegments <- function(rdo,onlyAlts=FALSE,minWidth=3,alpha=0.01,undoSD=2,rmGaps=TRUE){
   library('DNAcopy')
   df = makeDfLog(rdo@chrs,rdo@binParams)
-  return(getSegs(df,rdo@binParams,rdo@entrypoints,onlyAlts,minWidth,alpha,rmGaps,undoSD))
+  return(getSegs(rdo, df,rdo@binParams,rdo@entrypoints,onlyAlts,minWidth,alpha,rmGaps,undoSD))
 }
 
 ##----------------------------------------------------
 ## Use circular binary segmentation to merge adjacent
 ## windows and identify breakpoints from tumor/normal samples
 ##
-cnSegments.paired <- function(rdo.ref,rdo.test,onlyAlts=FALSE,minWidth=3,alpha=0.01,undoSD=2,rmGaps=TRUE){ 
+cnSegments.paired <- function(rdo.ref,rdo.test,onlyAlts=FALSE,minWidth=3,alpha=0.01,undoSD=2,rmGaps=TRUE){
   library('DNAcopy')
 
   if(verbose){
@@ -21,9 +21,9 @@ cnSegments.paired <- function(rdo.ref,rdo.test,onlyAlts=FALSE,minWidth=3,alpha=0
   }
 
   df = makeDfLogPaired(rdo.ref,rdo.test)
-  
+
   #do the segmentation
-  return(getSegs(df,params=rdo.ref@binParams, entrypoints=rdo.ref@entrypoints, onlyAlts=onlyAlts, minWidth=minWidth,
+  return(getSegs(rdo.ref,df,params=rdo.ref@binParams, entrypoints=rdo.ref@entrypoints, onlyAlts=onlyAlts, minWidth=minWidth,
                  alpha=alpha, rmGaps=rmGaps, undoSD=undoSD))
 }
 
@@ -32,18 +32,18 @@ cnSegments.paired <- function(rdo.ref,rdo.test,onlyAlts=FALSE,minWidth=3,alpha=0
 ## run circular binary segmentation to identify discrete
 ## segments of gain and loss
 ##
-getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=3, alpha=0.01, rmGaps=TRUE, undoSD=2){
+getSegs <- function(rdo, gd2, params, entrypoints, onlyAlts, minWidth=3, alpha=0.01, rmGaps=TRUE, undoSD=2){
   CNA.object <-CNA( genomdat = gd2$score, chrom = gd2$chr, maploc =gd2$pos, data.type = 'logratio')
 
   ## we could enable smoothing, but it seems to work better
-  ## without this step.  Our data is less noisy than microarrays  
+  ## without this step.  Our data is less noisy than microarrays
   ## smoothed.CNA.object <-smooth.CNA(CNA.object)
 
   if(verbose){
     print("Segmenting Data");
   }
   #run cbs
-  segs <- segment(CNA.object, verbose=0, alpha=alpha, min.width=minWidth, undo.splits="sdundo",undo.SD=undoSD)  
+  segs <- segment(CNA.object, verbose=0, alpha=alpha, min.width=minWidth, undo.splits="sdundo",undo.SD=undoSD)
   segs = segs$output
   if(rmGaps==TRUE){
     ##adjust first and last segs to meet chromosome ends,
@@ -66,10 +66,10 @@ getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=3, alpha=0.01, 
       if(length(asegs[,1])==1){
         return(asegs)
       }
-      
-      for(i in 1:(length(asegs[,1])-1)){  
+
+      for(i in 1:(length(asegs[,1])-1)){
         ##don't merge if they're really far apart
-        if((asegs[i+1,]$loc.start-asegs[i,]$loc.end) < maxDist){           
+        if((asegs[i+1,]$loc.start-asegs[i,]$loc.end) < maxDist){
           half = floor((asegs[i,]$loc.end + asegs[i+1,]$loc.start)/2)
           asegs[i,]$loc.end = half
           asegs[i+1,]$loc.start = half + 1
@@ -78,16 +78,16 @@ getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=3, alpha=0.01, 
             cat("not removing",chr,asegs[i,]$loc.end,asegs[i+1,]$loc.start," - gap too large\n")
           }
         }
-      }      
+      }
       return(asegs)
     }
     ##do the gap removal
-    segs2 = NULL  
+    segs2 = NULL
     for(i in 1:length(entrypoints$chr)){
       chr = entrypoints$chr[i]
       chrSegs = removeGaps(chr,segs,entrypoints)
       if(!is.null(chrSegs)){
-        if(is.null(segs2)){        
+        if(is.null(segs2)){
           segs2 = chrSegs
         }else{
           segs2 = rbind(segs2,chrSegs)
@@ -97,7 +97,7 @@ getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=3, alpha=0.01, 
     segs = segs2
   }
 
-  
+
   ##convert means back out of log space into absolute copy number
   segs$seg.mean=(2^segs$seg.mean)*2
 
@@ -105,12 +105,12 @@ getSegs <- function(gd2, params, entrypoints, onlyAlts, minWidth=3, alpha=0.01, 
 ##   ## disabled for now
 ##   doPlots <- function(){
 ##     pdf("output/CNplots.pdf")
-##     plot(segs,plot.type="w")   
+##     plot(segs,plot.type="w")
 ##     plot(segs,plot.type="s")
 ##     plot(segs,plot.type="p")
-    
-##     for(i in unique(segs$output$chrom)){    
-##       a = subset(segs,chromlist=c(i))    
+
+##     for(i in unique(segs$output$chrom)){
+##       a = subset(segs,chromlist=c(i))
 ##       plot(a)
 ##       mtext(paste("Chromosome",i))
 ##     }
@@ -134,15 +134,15 @@ mergeSegs <- function(segs,rdo){
   params=rdo@binParams
   gainCN = params$gainThresh/params$med
   lossCN = params$lossThresh/params$med
-  
+
   buffer = segs[1,]
   for(i in 2:length(segs[,1])){
     ##if they are adjacent
-    if(buffer[3]+1 == segs[i,2]){       
+    if(buffer[3]+1 == segs[i,2]){
       ## if they're both gains or losses
       if(((buffer[5] > gainCN) & (segs[i,5] > gainCN)) |
          ((buffer[5] > lossCN) & (segs[i,5] > lossCN))){
-        
+
         #merge them
         cat("merge\n")
         buffer[3] = segs[i,3]
@@ -151,12 +151,12 @@ mergeSegs <- function(segs,rdo){
 
       }else{
         df = rbind(df,buffer)
-        buffer = segs[i,]        
+        buffer = segs[i,]
       }
     }else{
       df = rbind(df,buffer)
-      buffer = segs[i,]        
-    }   
+      buffer = segs[i,]
+    }
   }
   #clear buffer at end
   df = rbind(df,buffer)
@@ -166,7 +166,7 @@ mergeSegs <- function(segs,rdo){
 
 
 ##-----------------------------------------------
-## subset out just the alterations from the copy number segments 
+## subset out just the alterations from the copy number segments
 ##
 getAlts <- function(segs,rdo){
   return(segs[which(segs$seg.mean > rdo@binParams$gainThresh | segs$seg.mean < rdo@binParams$lossThresh),])
@@ -182,7 +182,7 @@ getAlts <- function(segs,rdo){
 ## those regions would be called with the same CN as the first
 ## few mapable bins
 ##
-trimSegmentEnds <- function(segs,rdo){  
+trimSegmentEnds <- function(segs,rdo){
 
   doTrimming <- function(chr, asegs, bins){
     ##find first pos that doesn't have an NA
@@ -213,7 +213,7 @@ trimSegmentEnds <- function(segs,rdo){
 
       asegs=rbind(a,asegs)
     }
-    
+
     ##trim end (unless there are no NAs at end)
     if(!(sp == length(bins[,1]))){
       asegs[length(asegs[,1]),]$loc.end=(sp-1)*rdo@binParams$binSize-1
@@ -223,10 +223,11 @@ trimSegmentEnds <- function(segs,rdo){
         num.mark=0,
         seg.mean=2.0)
         asegs=rbind(asegs,a)
-    }    
+    }
     return(asegs)
   }
-  
+
+  chr = NULL
   foreach(chr=rdo@entrypoints$chr, .combine="rbind") %dopar% {
     doTrimming(chr, segs[which(segs$chrom==chr),], rdo@chrs[[chr]])
   }

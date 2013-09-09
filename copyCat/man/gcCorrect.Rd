@@ -9,7 +9,7 @@
   and adds a "gc" column containing that bin's GC content percentage
 }
 \usage{
-  gcCorrect(rdo, meth=FALSE, outlierPercentage=0.01)
+  gcCorrect(rdo, meth=FALSE, outlierPercentage=0.01, resolution = 0.001)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -24,9 +24,12 @@
     and methylated bases that were protected from this conversion
   }
   \item{outlierPercentage}{
-    Removes the highest and lowest N% of reads before loess correction
+    Removes the highest and lowest N\% of reads before loess correction
     This prevents overfitting near the extremes, to which loess is 
     susceptible. Default value is 0.01
+  }
+  \item{resolution}{
+    the resolution at which to bin the values (0.01=1\%)
   }
 }
 \details{

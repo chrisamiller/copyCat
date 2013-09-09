@@ -9,7 +9,8 @@
   adds a "map" column containing that bin's percentage mapability
 }
 \usage{
-  mapCorrect(rdo)
+  mapCorrect(rdo, outlierPercentage=0.01, minMapability=0.60,
+resolution=0.01, skipCorrection=FALSE)
 }
 \arguments{
   \item{rdo}{

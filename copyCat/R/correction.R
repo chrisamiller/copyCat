@@ -18,6 +18,7 @@ gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01, resolution=0.001)
     
     ##figure out the avg num of reads for each level of GC content
     mcoptions <- list(preschedule = FALSE)
+    chr = NULL;
     gcBins = foreach(chr=rdo2@entrypoints$chr, .combine="combineBins",.options.multicore=mcoptions) %dopar% {
       binGC(rdo2, chr, len)
     }
@@ -336,6 +337,7 @@ loessCorrect <- function(rdo, libNum, readLength, libName, outlierPercentage=0.0
   ##count the number of reads in each percentage bin
   corrBins = c();
   if(type=="gc"){
+    chr = NULL
     corrBins = foreach(chr=rdo@entrypoints$chr, .combine="combinePercBins") %dopar% {    
       makeCorrBins(rdo@chrs[[chr]],libNum,corrResolution,chr,type)
     }
@@ -586,7 +588,7 @@ removeGapCounts <- function(rdo,gapsFile){
 ##----------------------------------------------------------------------------------
 ## remove counts in that overlap the gaps specified in a file
 ##
-coverageFilter <- function(rdo){
+coverageFilter <- function(rdo,gapsFile){
   gaps = read.table(gapsFile);
   names(gaps) = c("chr","st","sp")
 

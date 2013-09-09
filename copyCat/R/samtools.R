@@ -204,6 +204,7 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
   ##this uses a ton of memory, so we're just going to use one core for now
   options(cores = 1);
   mcoptions <- list(preschedule = FALSE)
+  chr=NULL
   adjReadDepths = foreach(chr=rdo@entrypoints$chr, .combine="append",.options.multicore=mcoptions) %dopar% {
     doCalc(rdo, snpBinSize, peakWiggle, chr, hetsites[which(hetsites$chr==chr),], homsites[which(homsites$chr==chr),], plot=plot)
   }
