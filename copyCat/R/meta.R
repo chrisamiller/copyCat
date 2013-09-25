@@ -7,7 +7,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0,
                                     samtoolsFile=NULL, peakwiggle=3, snpBinSize=1000000,
-                                    verbose=TRUE){
+                                    verbose=TRUE, purity=1){
 
   verbose <<- verbose
   registerDoMC()
@@ -38,8 +38,9 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
   ##segment the data using CBS
   segs = cnSegments(rdo)
   ##set gain and loss thresholds
-  rdo@binParams$gainThresh = 2.5
-  rdo@binParams$lossThresh = 1.5
+  diff=0.5*purity
+  rdo@binParams$gainThresh = 2.0+diff
+  rdo@binParams$lossThresh = 2.0-diff
   ##write some output
   writeSegs(segs,rdo)
   writeAlts(segs,rdo)
@@ -58,7 +59,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     outputSingleSample=FALSE, tumorSamtoolsFile=NULL,
                                     normalSamtoolsFile=NULL, dumpBins=FALSE, minWidth=3,
                                     doGcCorrection=TRUE, rDataFile=NULL,
-                                    minMapability=0.60){
+                                    minMapability=0.60, purity=1){
 
   verbose <<- verbose
   registerDoMC()  
@@ -128,8 +129,10 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##segment the paired data using CBS
   segs = cnSegments.paired(rdo, rdo2, minWidth=minWidth)
   ##set gain and loss thresholds
-  rdo@binParams$gainThresh = 2.5
-  rdo@binParams$lossThresh = 1.5
+  diff=0.5*purity
+  rdo@binParams$gainThresh = 2.0+diff
+  rdo@binParams$lossThresh = 2.0-diff
+
   ##write some output
   writeSegs(segs,rdo,"segs.paired.dat")
   writeAlts(segs,rdo,"alts.paired.dat")
@@ -139,8 +142,10 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     ##segment the non-paired data using CBS
     segs = cnSegments(rdo2)
     ##set gain and loss thresholds
-    rdo2@binParams$gainThresh = 2.5
-    rdo2@binParams$lossThresh = 1.5
+    diff=0.5*purity
+    rdo2@binParams$gainThresh = 2.0+diff
+    rdo2@binParams$lossThresh = 2.0-diff  
+
     ##write some output
     writeSegs(segs,rdo2,"segs.singleSample.tumor.dat")
     writeAlts(segs,rdo2,"alts.singleSample.tumor.dat")
