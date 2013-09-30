@@ -232,3 +232,94 @@ trimSegmentEnds <- function(segs,rdo){
     doTrimming(chr, segs[which(segs$chrom==chr),], rdo@chrs[[chr]])
   }
 }
+
+
+
+##-----------------------------------------------
+## remove segments that overlap at least n% with a reference assembly gap
+##
+removeGapSpanningSegments <- function(segs,rdo,maxOverlap=0.75){
+  count = length(segs[,1]);
+
+  if(!(file.exists(paste(rdo@params$annotationDirectory,"/gaps.bed",sep="")))){
+    print("ERROR: gaps file not found in annotation directory. Expected a 3-column bed file named gaps.bed at:");
+    print(paste(rdo@params$annotationDirectory,"/gaps.bed",sep=""))
+    return(segs)
+  }
+
+  gaps = read.table(paste(rdo@params$annotationDirectory,"/gaps.bed",sep=""))
+
+  #intersect each chromosome separately
+  newsegs = foreach(chr=names(rdo@chrs), .combine="rbind") %do%{
+
+    ##blank data frame to collect results
+    outsegs = data.frame(chrom=character(0),loc.start=numeric(0), loc.end=numeric(0), num.probes=numeric(0), seg.mean=numeric(0))
+
+    insegs = segs[segs[,1] == chr,]
+    if(length(insegs[,1])>0){
+      segR = IRanges(start <- insegs$loc.start, end <- insegs$loc.end)
+      gapR = IRanges(start <- gaps[gaps[,1]==chr,2], end <- gaps[gaps[,1]==chr,3])
+      m <- findOverlaps(segR,gapR)
+      if(length(m) == 0){
+        outsegs=insegs;
+      } else {
+        segRhits <- segR[queryHits(m)]
+        gapRhits <- gapR[subjectHits(m)]
+
+        mint <- pintersect(segRhits, gapRhits)
+        segRpercent <- width(mint) / width(segRhits)
+        gapRpercent <- width(mint) / width(gapRhits)
+
+        #get pos of items to remove
+        outsegs = insegs[!(start(segR) %in% start(segRhits[segRpercent > maxOverlap])),]
+      }
+    }
+
+    outsegs;
+  }
+  print(paste("gap-filtering removed",count-length(newsegs[,1]),"segments"));
+  return(newsegs)
+}
+
+
+##-----------------------------------------------
+## remove segments that have abnormally high or low coverage
+## (probably mapping/assembly errors)
+removeCoverageArtifacts <- function(segs,rdo,rdo2=NULL){
+  count = length(segs[,1]);
+
+  getMedianDepth <- function(df, chr, st, sp){
+    d = df[which(df$chr==chr & df$pos>=st & df$pos<=sp),]
+    return(median(d$score,na.rm=TRUE))
+  }
+
+  keep = rep(TRUE,length(segs[,1]))
+
+
+  ##get a dataframe with all the counts
+  df = makeDf(rdo@chrs,rdo@binParams)
+
+  for(i in 1:length(segs[,1])){
+    med = getMedianDepth(df, segs[i,1], segs[i,2], segs[i,3])
+    if((med < rdo@params$med/10) ||
+       (med > rdo@params$med*10)){
+      keep[i] = FALSE
+    }
+  }
+
+  #if a second rdo object is given, use that too
+  if(!(is.null(rdo2))){
+    ##get a dataframe with all the counts
+    df = makeDf(rdo2@chrs,rdo2@binParams)
+
+    for(i in 1:length(segs[,1])){
+      med = getMedianDepth(df, segs[i,1], segs[i,2], segs[i,3])
+      if((med < rdo2@params$med/10) ||
+         (med > rdo2@params$med*10)){
+        keep[i] = FALSE
+      }
+    }
+  }
+  print(paste("coverage-filtering removed",count-length(segs[keep,1]),"segments"));
+  return(segs[keep,])
+}

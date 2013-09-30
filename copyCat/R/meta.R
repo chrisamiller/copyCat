@@ -59,7 +59,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     outputSingleSample=FALSE, tumorSamtoolsFile=NULL,
                                     normalSamtoolsFile=NULL, dumpBins=FALSE, minWidth=3,
                                     doGcCorrection=TRUE, rDataFile=NULL,
-                                    minMapability=0.60, purity=1){
+                                    minMapability=0.60, purity=1, maxGapOverlap=0.75){
 
   verbose <<- verbose
   registerDoMC()  
@@ -133,9 +133,18 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   rdo@binParams$gainThresh = 2.0+diff
   rdo@binParams$lossThresh = 2.0-diff
 
+  ##false-positive filtering:
+  alts=getAlts(segs,rdo)
+  ##remove segs that mostly intersect gaps as false-positives
+  alts = removeGapSpanningSegments(alts,rdo,maxOverlap=maxGapOverlap)
+  ##remove alts that are smaller than 10 windows
+  alts = alts[alts$num.mark >= 10,]
+  ##remove alts with abnormally high or low coverage
+  alts = removeCoverageArtifacts(alts,rdo,rdo2)
+  
   ##write some output
   writeSegs(segs,rdo,"segs.paired.dat")
-  writeAlts(segs,rdo,"alts.paired.dat")
+  writeSegs(alts,rdo,"alts.paired.dat")
 
 
   if(outputSingleSample){

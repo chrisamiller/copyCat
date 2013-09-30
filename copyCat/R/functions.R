@@ -266,6 +266,7 @@ makeMapDf <-function(rdo,libNum){
   return(data.frame(count=counts,map=maps))
 }
 
+
 ##-----------------------------------------------------------
 ## some simple output functions
 ##

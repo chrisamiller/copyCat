@@ -9,7 +9,7 @@ gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01, resolution=0.001)
   ##have to correct each read length individually
   for(len in unique(rdo@readInfo$readlength)){
     if(verbose){
-      print(paste("calculating GC content for readlength",len,date(),sep=" "))
+      print(paste("calculating GC content for read length",len,date(),sep=" "))
     }
     
     rdo2 = subsetByReadLength(rdo,len)
@@ -73,7 +73,7 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
   ##have to correct each read length individually
   for(len in unique(rdo@readInfo$readlength)){
     if(verbose){
-      print(paste("calculating mapability content for readlength",len,date(),sep=" "))
+      print(paste("calculating mapability content for read length",len,date(),sep=" "))
     }
 
     rdo2 = subsetByReadLength(rdo,len)
@@ -563,43 +563,4 @@ makeCorrBinsMedian <- function(rdo,libNum,windSize,type){
     zcnt[[i]] = sum(bins[bins$zbin == i,]$count, na.rm=T)
   }
   return(data.frame(val=myBin,avgreads=zmed, numreads=zcnt))
-}
-
-##----------------------------------------------------------------------------------
-## remove counts in that overlap the gaps specified in a file
-##
-removeGapCounts <- function(rdo,gapsFile){
-  gaps = read.table(gapsFile);
-  names(gaps) = c("chr","st","sp")
-
-  binSize = rdo@params$binSize
-
-  #this could be vectorized later for speed
-  for(i in 1:length(gaps[,1])){
-    windst = round(gaps[i,2]/binSize)*binSize
-    windsp = (round(gaps[i,3]/binSize)*binSize)+1
-
-    cols = grep("^rd.",names(rdo@chrs[[1]]))
-    rdo@chrs[[gaps[i,1]]][windst:windsp,cols]
-  }
-}
-
-
-##----------------------------------------------------------------------------------
-## remove counts in that overlap the gaps specified in a file
-##
-coverageFilter <- function(rdo,gapsFile){
-  gaps = read.table(gapsFile);
-  names(gaps) = c("chr","st","sp")
-
-  binSize = rdo@params$binSize
-
-  #this could be vectorized later for speed
-  for(i in 1:length(gaps[,1])){
-    windst = round(gaps[i,2]/binSize)*binSize
-    windsp = (round(gaps[i,3]/binSize)*binSize)+1
-
-    cols = grep("^rd.",names(rdo@chrs[[1]]))
-    rdo@chrs[[gaps[i,1]]][windst:windsp,cols]
-  }
 }
