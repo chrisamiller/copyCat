@@ -1,6 +1,6 @@
 library(copyCat)
 #do a paired sample analysis on the test data
-runPairedSampleAnalysis(annotationDirectory="/gscmnt/gc6122/info/medseq/annotations/copyCat/hg19.chr14only",
+runPairedSampleAnalysis(annotationDirectory="annotations/hg19.chr14only",
                         outputDirectory="results",
                         normal="data/normal.wind",
                         tumor="data/tumor.wind",
