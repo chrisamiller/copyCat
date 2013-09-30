@@ -13,7 +13,6 @@
   removeGapSpanningSegments(segs,rdo,maxOverlap=0.75)
 }
 
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{rdo}{
     a readDepth object created with new("rdObject") and filled with read
