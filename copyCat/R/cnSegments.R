@@ -284,13 +284,20 @@ removeGapSpanningSegments <- function(segs,rdo,maxOverlap=0.75){
 
 ##-----------------------------------------------
 ## remove segments that have abnormally high or low coverage
-## (probably mapping/assembly errors)
-removeCoverageArtifacts <- function(segs,rdo,rdo2=NULL){
+## (probably mapping/assembly errors). Use the normal sample
+## for this, not the tumor, lest we confuse regions of amp/del
+## for real events.
+removeCoverageArtifacts <- function(segs,rdo){
   count = length(segs[,1]);
 
-  getMedianDepth <- function(df, chr, st, sp){
+  getMedianDepth <- function(df, chr, st, sp, binsize){
     d = df[which(df$chr==chr & df$pos>=st & df$pos<=sp),]
-    return(median(d$score,na.rm=TRUE))
+    #take missing (low-map) bins into account here:
+    depths = d$score
+    expectedWinds=round(((sp-st)+1)/rdo@params$binSize)
+    numZeroBins = expectedWinds-length(depths)
+    depths = c(depths,rep(0,numZeroBins))
+    return(median(depths,na.rm=TRUE))
   }
 
   keep = rep(TRUE,length(segs[,1]))
@@ -298,28 +305,14 @@ removeCoverageArtifacts <- function(segs,rdo,rdo2=NULL){
 
   ##get a dataframe with all the counts
   df = makeDf(rdo@chrs,rdo@binParams)
-
   for(i in 1:length(segs[,1])){
     med = getMedianDepth(df, segs[i,1], segs[i,2], segs[i,3])
-    if((med < rdo@params$med/10) ||
-       (med > rdo@params$med*10)){
+    if((med < rdo@params$med/5) ||
+       (med > rdo@params$med*5)){
       keep[i] = FALSE
     }
-  }
+  } 
 
-  #if a second rdo object is given, use that too
-  if(!(is.null(rdo2))){
-    ##get a dataframe with all the counts
-    df = makeDf(rdo2@chrs,rdo2@binParams)
-
-    for(i in 1:length(segs[,1])){
-      med = getMedianDepth(df, segs[i,1], segs[i,2], segs[i,3])
-      if((med < rdo2@params$med/10) ||
-         (med > rdo2@params$med*10)){
-        keep[i] = FALSE
-      }
-    }
-  }
   print(paste("coverage-filtering removed",count-length(segs[keep,1]),"segments"));
   return(segs[keep,])
 }

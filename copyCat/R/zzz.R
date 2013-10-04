@@ -19,5 +19,5 @@
   sillyname(methods)
 
   initRdClass()
-  packageStartupMessage("Using copyCat version 1.6.0")
+  packageStartupMessage("Using copyCat version 1.6.1")
 }

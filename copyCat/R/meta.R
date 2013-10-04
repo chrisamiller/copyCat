@@ -140,7 +140,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##remove alts that are smaller than 10 windows
   alts = alts[alts$num.mark >= 10,]
   ##remove alts with abnormally high or low coverage
-  alts = removeCoverageArtifacts(alts,rdo,rdo2)
+  alts = removeCoverageArtifacts(alts,rdo)
   
   ##write some output
   writeSegs(segs,rdo,"segs.paired.dat")
