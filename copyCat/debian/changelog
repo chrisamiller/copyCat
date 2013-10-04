@@ -1,8 +1,15 @@
+r-cran-copycat (1.6-1) lucid; urgency=low
+
+  * added updates to coverage filter
+
+ -- Chris Miller <cmiller@genome.wustl.edu>  Mon, 4 Oct 2013 12:00:00 -0500
+
+
 r-cran-copycat (1.6-0) lucid; urgency=low
 
   * added false-positive filtering based on coverage and reference gap intersection
 
- -- Chris Miller <cmiller@genome.wustl.edu>  Mon, 9 Sep 2013 12:01:15 -0500
+ -- Chris Miller <cmiller@genome.wustl.edu>  Mon, 23 Sep 2013 12:01:15 -0500
 
 
 r-cran-copycat (1.5-5) lucid; urgency=low
