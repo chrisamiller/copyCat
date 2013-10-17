@@ -20,10 +20,10 @@ cnSegments.paired <- function(rdo.ref,rdo.test,onlyAlts=FALSE,minWidth=3,alpha=0
     print("combining data to get log2 ratios")
   }
 
-  df = makeDfLogPaired(rdo.ref,rdo.test)
+  cndf = makeDfLogPaired(rdo.ref,rdo.test)
 
   #do the segmentation
-  return(getSegs(rdo.ref,df,params=rdo.ref@binParams, entrypoints=rdo.ref@entrypoints, onlyAlts=onlyAlts, minWidth=minWidth,
+  return(getSegs(rdo.ref,cndf,params=rdo.ref@binParams, entrypoints=rdo.ref@entrypoints, onlyAlts=onlyAlts, minWidth=minWidth,
                  alpha=alpha, rmGaps=rmGaps, undoSD=undoSD))
 }
 
@@ -132,8 +132,8 @@ getSegs <- function(rdo, gd2, params, entrypoints, onlyAlts, minWidth=3, alpha=0
 mergeSegs <- function(segs,rdo){
   df = NULL
   params=rdo@binParams
-  gainCN = params$gainThresh/params$med
-  lossCN = params$lossThresh/params$med
+  gainCN = params$gainThresh/binParams$med
+  lossCN = params$lossThresh/binParams$med
 
   buffer = segs[1,]
   for(i in 2:length(segs[,1])){
@@ -307,8 +307,8 @@ removeCoverageArtifacts <- function(segs,rdo){
   df = makeDf(rdo@chrs,rdo@binParams)
   for(i in 1:length(segs[,1])){
     med = getMedianDepth(df, segs[i,1], segs[i,2], segs[i,3])
-    if((med < rdo@params$med/5) ||
-       (med > rdo@params$med*5)){
+    if((med < rdo@binParams$med/5) ||
+       (med > rdo@binParams$med*5)){
       keep[i] = FALSE
     }
   } 

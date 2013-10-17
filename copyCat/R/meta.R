@@ -30,9 +30,9 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
 
   ##use the samtools file to get cn-neutral median read count
   if(!(is.null(samtoolsFile))){
-    rdo@params$med = cnNeutralDepthFromHetSites(rdo,samtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+    rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,samtoolsFile,1000000,peakWiggle=3,plot=TRUE)
   } else {
-    rdo@params$med = getMedianReadCount(rdo)
+    rdo@binParams$med = getMedianReadCount(rdo)
   }
 
   ##segment the data using CBS
@@ -115,15 +115,15 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ## use samtools to find cn-neutral regions and calc median value
   ##tumor
   if(!(is.null(tumorSamtoolsFile))){
-    rdo2@params$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,2000000,peakWiggle=4,plot=TRUE)
+    rdo2@binParams$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,2000000,peakWiggle=4,plot=TRUE)
   } else {
-    rdo2@params$med = getMedianReadCount(rdo2)
+    rdo2@binParams$med = getMedianReadCount(rdo2)
   }
   ##normal
   if(!(is.null(normalSamtoolsFile))){
-    rdo@params$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,2000000,peakWiggle=4,plot=TRUE)
+    rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,2000000,peakWiggle=4,plot=TRUE)
   } else {
-    rdo@params$med = getMedianReadCount(rdo)
+    rdo@binParams$med = getMedianReadCount(rdo)
   }
 
   ##segment the paired data using CBS
@@ -162,9 +162,9 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
 
     #normal
     if(!(is.null(normalSamtoolsFile))){
-      rdo@params$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+      rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
     } else {
-      rdo@params$med = getMedianReadCount(rdo)
+      rdo@binParams$med = getMedianReadCount(rdo)
     }
     ##segment the paired data using CBS
     segs = cnSegments(rdo)

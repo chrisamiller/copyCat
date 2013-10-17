@@ -121,8 +121,8 @@ getMedianReadCount <- function(rdo){
   tmp = c()
   for(chr in rdo@entrypoints$chr){    
     tmp = c(tmp,rdo@chrs[[chr]]$rd)
-    rdo@binParams$med
   }
+  return(median(tmp,na.rm=TRUE))
 }
 
 ##--------------------------------------------------
@@ -214,15 +214,17 @@ makeDf <-function(binList,params){
 ##
 makeDfLogPaired <- function(nrm,tum){
   ##create a merged data frame with windows common to both samples
-  dftum = makeDf(tum@chrs,tum@params)
-  dfnrm = makeDf(nrm@chrs,nrm@params)
+  dftum = makeDf(tum@chrs,tum@binParams)
+  dfnrm = makeDf(nrm@chrs,nrm@binParams)
+
   counts=merge(dftum,dfnrm,by=c("chr","pos"))
   counts = counts[with(counts, order(chr,pos)), ]
-  
+
   counts$score.x = counts$score.x/tum@binParams$med
   counts$score.y = counts$score.y/nrm@binParams$med
   
   df = data.frame(chr=counts$chr,pos=counts$pos,score=log2(counts$score.x/counts$score.y))
+  return(df)
 }
 
 
@@ -231,14 +233,15 @@ makeDfLogPaired <- function(nrm,tum){
 ##
 makeDfPaired <- function(nrm,tum){
   ##create a merged data frame with windows common to both samples
-  dftum = makeDf(tum@chrs,tum@params)
-  dfnrm = makeDf(nrm@chrs,nrm@params)
+  dftum = makeDf(tum@chrs,tum@binParams)
+  dfnrm = makeDf(nrm@chrs,nrm@binParams)
+
   counts=merge(dftum,dfnrm,by=c("chr","pos"))
   counts = counts[with(counts, order(chr,pos)), ]
-  
-  counts$score.x = counts$score.x/tum@binParams$med
-  counts$score.y = counts$score.y/nrm@binParams$med
-  
+ 
+  counts$score.x = (counts$score.x/tum@binParams$med)
+  counts$score.y = (counts$score.y/nrm@binParams$med)
+
   df = data.frame(chr=counts$chr,pos=counts$pos,score=(counts$score.x/counts$score.y)*2)
 }
 
