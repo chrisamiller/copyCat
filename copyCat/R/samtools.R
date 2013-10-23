@@ -20,7 +20,7 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
   sites = sites[,c(1,2,8,9)]
   names(sites) = c("chr","st","depth","pileup")
   sites$pileup = as.character(sites$pileup)
-
+ 
   ##return the number of bases that match the reference from a pileup string
   reflength <- function(s){
     return(unname(length(gregexpr('[,.]',s)[[1]])))
@@ -50,7 +50,6 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
     print("finding clean windows of CN 2x, 3x, 4x")
   }
 
-  
   doCalc <- function(rdo, snpBinSize, peakWiggle, chr, hetsites, homsites, plot){
     chrLen = getChrLength(chr,rdo@entrypoints)
     ## create an IRange for bins
@@ -64,7 +63,6 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
     ##figure out which reads fall in which bins
     hetBinnedSites <- as.matrix(findOverlaps(bins,hetIsites))
     homBinnedSites <- as.matrix(findOverlaps(bins,homIsites))
-
 
     ##grab the VAFs, find the peaks, make the call
     findPeaks <- function(series,span=3){
@@ -89,7 +87,6 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
         pdf(file=paste(rdo@params$outputDirectory,"/plots/vafplots/vafs.",chr,".pdf",sep=""))
       }
     }
-
     for(i in 1:length(bins)){
 
       #if we have sites to look at
@@ -162,7 +159,6 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
         }
       }
     }
-
     if(plot){
       dev.off()
     }
@@ -192,9 +188,10 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
     if(length(reads) == 0){
       return(NA)
     }
-    #print("test1")
-    print(paste("mean:   ",mean(aReadDepths, na.rm=TRUE)))
-    print(paste("median: ",median(aReadDepths, na.rm=TRUE)))
+    if(verbose){
+      print(paste("mean:   ",mean(aReadDepths, na.rm=TRUE)))
+      print(paste("median: ",median(aReadDepths, na.rm=TRUE)))
+    }
     return(aReadDepths)
   }
 
@@ -211,11 +208,18 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
   ##restore cores for future use
   options(cores = rdo@params$maxCores)
 
-  #return the average of the adj readcounts
-  print(mean(adjReadDepths, na.rm=TRUE))
+  
+  if(length(adjReadDepths) <= 10){
+    print("Too few interpretable windows were found in samtools data - falling back to use median read depth")
+    return(getMedianReadCount(rdo))
+  }
+  
+  ##return the average of the adj readcounts
+  if(verbose){print(mean(adjReadDepths, na.rm=TRUE))}
+  
   if(plot){
     pdf(file=paste(rdo@params$outputDirectory,"/plots/vafplots/means.pdf",sep=""))
-
+    
     
     hist(adjReadDepths,breaks=100,col="darkgreen",xlim=c(0,(mean(adjReadDepths, na.rm=TRUE)*2)))
     mtext("red=mean,blue=med")
@@ -223,8 +227,8 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
     abline(v=median(adjReadDepths,na.rm=T),col="blue")
     dev.off()
   }
-
-  #return(adjReadDepths)
-  print(date())
+  
+  if(verbose){print(date())};
+  
   return(median(adjReadDepths, na.rm=TRUE));
 }
