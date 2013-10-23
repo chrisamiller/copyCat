@@ -1,3 +1,10 @@
+r-cran-copycat (1.6-2) lucid; urgency=low
+
+  * bugfixes related to median estimation and samtools file usage
+
+ -- Chris Miller <cmiller@genome.wustl.edu>  Mon, 17 Oct 2013 12:00:00 -0500
+
+
 r-cran-copycat (1.6-1) lucid; urgency=low
 
   * added updates to coverage filter
