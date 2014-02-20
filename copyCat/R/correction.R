@@ -84,7 +84,11 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
     mapBins = foreach(chr=rdo2@entrypoints$chr, .combine="combineBins",.options.multicore=mcoptions) %dopar% {
       binMap(rdo2, chr, len)
     }
+    
     for(i in rdo2@entrypoints$chr){
+      print(i)
+      print(head(rdo2@chrs[[i]]))
+      print(head(mapBins[[i]]))
       rdo2@chrs[[i]] = cbind(rdo2@chrs[[i]],mapBins[[i]])
     }
     closeAllConnections()

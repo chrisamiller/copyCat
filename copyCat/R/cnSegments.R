@@ -16,7 +16,6 @@ cnSegments.paired <- function(rdo.ref,rdo.test,onlyAlts=FALSE,minWidth=3,alpha=0
   library('DNAcopy')
 
   if(verbose){
-    ## print("downsampling genome with greater coverage, combining data to get log2 ratios")
     print("combining data to get log2 ratios")
   }
 
@@ -292,11 +291,13 @@ removeCoverageArtifacts <- function(segs,rdo){
 
   getMedianDepth <- function(df, chr, st, sp, binsize){
     d = df[which(df$chr==chr & df$pos>=st & df$pos<=sp),]
-    #take missing (low-map) bins into account here:
+    ##take missing (low-map) bins into account here:
     depths = d$score
     expectedWinds=round(((sp-st)+1)/rdo@params$binSize)
     numZeroBins = expectedWinds-length(depths)
-    depths = c(depths,rep(0,numZeroBins))
+    if(numZeroBins > 0){
+      depths = c(depths,rep(0,numZeroBins))
+    }
     return(median(depths,na.rm=TRUE))
   }
 

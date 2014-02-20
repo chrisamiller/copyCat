@@ -220,7 +220,6 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
   if(plot){
     pdf(file=paste(rdo@params$outputDirectory,"/plots/vafplots/means.pdf",sep=""))
     
-    
     hist(adjReadDepths,breaks=100,col="darkgreen",xlim=c(0,(mean(adjReadDepths, na.rm=TRUE)*2)))
     mtext("red=mean,blue=med")
     abline(v=mean(adjReadDepths,na.rm=T),col="red")

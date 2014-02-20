@@ -92,63 +92,68 @@ getWindowBins <- function(rdo){
     }
   }
   rdo@readInfo=readInfo
-
-
   ##if we're not doing per-library or per-readlength correction,
   ##just merge all of the reads into one column.
-  if(!(params$perLibrary) & !(params$perReadLength)){
-    winds = cbind(winds[,1:2],rowSums(winds[,3:length(winds)]))
-    names(winds) = c("Chr","Start","Counts")
-  } else {    
+  if(length(winds) == 3){
+    names(winds) = c("Chr","Start",paste("Counts.",rl,sep=""))
+    rdo@readInfo$lib = c("Counts")
 
-    ##we could have multiple libraries with the same read lengths
-    ##if we aren't doing per-library correction, merge them
-    if(!(params$perLibrary)){
-      torm=c()
-      for(i in names(table(rdo@readInfo$readlength))){      
-        colsToMerge=rdo@readInfo[rdo@readInfo$readlength==i,]$column
-        if(length(colsToMerge) > 1){
-          newCol=rowSums(winds[,colsToMerge])
-          winds=cbind(winds,newCol)
-          names(winds)[length(winds)] = paste("Counts.",i,sep="")
-          torm = c(torm, colsToMerge)
-        }
-      }
-      for(j in rev(sort(torm))){
-        winds[[j]] <- NULL
-      }
+  } else { #assuming > 3 cols
+
+    if( (!(params$perLibrary) & !(params$perReadLength))){
+      winds = cbind(winds[,1:2],rowSums(winds[,3:length(winds)]))
+      names(winds) = c("Chr","Start","Counts")
+    } else {
       
-      ##update the readinfo table
-      rdo@readInfo <- rdo@readInfo[!(rdo@readInfo$readlength==i),]
-      rdo@readInfo <- rbind(rdo@readInfo, data.frame(column=length(winds),
-                                                   lib=paste("Counts.",i,sep=""),
-                                                   readlength=i,
-                                                   numreads=sum(winds[,length(winds)])))
-    }
-    if(!(params$perLibrary)){
-      torm=c()
-      for(i in names(table(rdo@readInfo$lib))){      
-        colsToMerge=rdo@readInfo[rdo@readInfo$lib==i,]$column
-        if(length(colsToMerge) > 1){
-          newCol=rowSums(winds[,colsToMerge])
-          winds=cbind(winds,newCol)
-          names(winds)[length(winds)] = paste(i,".lib",sep="")
-          torm = c(torm, colsToMerge)
+      ##we could have multiple libraries with the same read lengths
+      ##if we aren't doing per-library correction, merge them
+      if(!(params$perLibrary)){
+        torm=c()
+        for(i in names(table(rdo@readInfo$readlength))){      
+          colsToMerge=rdo@readInfo[rdo@readInfo$readlength==i,]$column
+          if(length(colsToMerge) > 1){
+            newCol=rowSums(winds[,colsToMerge])
+            winds=cbind(winds,newCol)
+            names(winds)[length(winds)] = paste("Counts.",i,sep="")
+            torm = c(torm, colsToMerge)
+          }
+      }
+        for(j in rev(sort(torm))){
+          winds[[j]] <- NULL
         }
+        
+        ##update the readinfo table
+        rdo@readInfo <- rdo@readInfo[!(rdo@readInfo$readlength==i),]
+        rdo@readInfo <- rbind(rdo@readInfo, data.frame(column=length(winds),
+                                                       lib=paste("rd.Counts.",i,sep=""),
+                                                       readlength=i,
+                                                       numreads=sum(winds[,length(winds)])))
+
+        torm=c()
+        for(i in names(table(rdo@readInfo$lib))){      
+          colsToMerge=rdo@readInfo[rdo@readInfo$lib==i,]$column
+          if(length(colsToMerge) > 1){
+            newCol=rowSums(winds[,colsToMerge])
+            winds=cbind(winds,newCol)
+            names(winds)[length(winds)] = paste(i,".lib",sep="")
+            torm = c(torm, colsToMerge)
+          }
+        }
+        for(j in rev(sort(torm))){
+          winds[[j]] <- NULL
+        }
+        
+        ##update the readinfo table
+        rdo@readInfo <- rdo@readInfo[!(rdo@readInfo$readlength==i),]
+        rdo@readInfo <- rbind(rdo@readInfo, data.frame(column=length(winds),
+                                                       lib=paste("rd.Counts.",i,sep=""),
+                                                       readlength=i,
+                                                       numreads=sum(winds[,length(winds)])))      
       }
-      for(j in rev(sort(torm))){
-        winds[[j]] <- NULL
-      }
-      
-      ##update the readinfo table
-      rdo@readInfo <- rdo@readInfo[!(rdo@readInfo$readlength==i),]
-      rdo@readInfo <- rbind(rdo@readInfo, data.frame(column=length(winds),
-                                                   lib=paste("Counts.",i,sep=""),
-                                                   readlength=i,
-                                                   numreads=sum(winds[,length(winds)])))      
     }
   }
 
+  ##TODO - handle the case where there are multiple read lengths that need to be merged
   
   ##add the data to the rd object
   for(i in 1:length(rdo@entrypoints$chr)){
