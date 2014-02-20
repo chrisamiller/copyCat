@@ -6,7 +6,8 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
                                     binSize=0,  #0 means let copyCat choose (or infer from bins file)
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0,
-                                    samtoolsFile=NULL, peakwiggle=3, snpBinSize=1000000,
+                                    samtoolsFile=NULL, samtoolsFileFormat="mpileup",
+                                    peakwiggle=3, snpBinSize=1000000,
                                     verbose=TRUE, purity=1){
 
   verbose <<- verbose
@@ -30,7 +31,8 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
 
   ##use the samtools file to get cn-neutral median read count
   if(!(is.null(samtoolsFile))){
-    rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,samtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+    rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,samtoolsFile,1000000,
+      peakWiggle=3,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat)
   } else {
     rdo@binParams$med = getMedianReadCount(rdo)
   }
@@ -57,7 +59,8 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0, verbose=TRUE,
                                     outputSingleSample=FALSE, tumorSamtoolsFile=NULL,
-                                    normalSamtoolsFile=NULL, dumpBins=FALSE, minWidth=3,
+                                    normalSamtoolsFile=NULL, samtoolsFileFormat="mpileup",
+                                    dumpBins=FALSE, minWidth=3,
                                     doGcCorrection=TRUE, rDataFile=NULL,
                                     minMapability=0.60, purity=1, maxGapOverlap=0.75){
 
@@ -115,13 +118,15 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ## use samtools to find cn-neutral regions and calc median value
   ##tumor
   if(!(is.null(tumorSamtoolsFile))){
-    rdo2@binParams$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,2000000,peakWiggle=4,plot=TRUE)
+    rdo2@binParams$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,2000000,
+      peakWiggle=4,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat)
   } else {
     rdo2@binParams$med = getMedianReadCount(rdo2)
   }
   ##normal
   if(!(is.null(normalSamtoolsFile))){
-    rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,2000000,peakWiggle=4,plot=TRUE)
+    rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,2000000,
+      peakWiggle=4,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat)
   } else {
     rdo@binParams$med = getMedianReadCount(rdo)
   }
@@ -162,7 +167,8 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
 
     #normal
     if(!(is.null(normalSamtoolsFile))){
-      rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,peakWiggle=3,plot=TRUE)
+      rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,
+        peakWiggle=3,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat)
     } else {
       rdo@binParams$med = getMedianReadCount(rdo)
     }

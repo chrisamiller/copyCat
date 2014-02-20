@@ -1,22 +1,14 @@
 ##-----------------------------------------------------------
-## read in a samtools pileup file, calculate the VAF of each
-## SNP, then find regions where the VAF is reasonably stable
-## at 2x, 3x, or 4x. Use these regions to calculate the depth
-## that is equivalent to CN-neutral regions
-##
-cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle=3, minimumDepth=20, maximumDepth=100, plot=FALSE){
-
-  if(verbose){
-    print("reading in samtools file")
-    print(date())
-  }
-
+## parse a 10-col mpileup file to extract SNP positions, depth
+## and allelic fraction.
+parseSamtoolsMpileup <- function(file, minimumDepth, maximumDepth){
   ## read in 10-col pileup file, grab only the pieces we need.
-  sites = read.delim(samtoolsFile,header=F,quote="")
+  sites = read.delim(file,header=F,quote="")
   if(length(sites) < 10){
     print("expecting 10-column samtools pileup file - this file has less than 10 columns")
     stop();
   }
+  
   sites = sites[,c(1,2,8,9)]
   names(sites) = c("chr","st","depth","pileup")
   sites$pileup = as.character(sites$pileup)
@@ -26,8 +18,7 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
     return(unname(length(gregexpr('[,.]',s)[[1]])))
   }
 
-  sites$ref = sapply(sites$pileup,reflength)
-  sites$vaf = (sites$ref/sites$depth)*100
+  sites$vaf = (sapply(sites$pileup,reflength)/sites$depth)*100
 
   ##drop the pileup strings to free up some memory
   sites$pileup <- NULL
@@ -35,7 +26,62 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
 
   ##throw out sites with depth greater than 100 and less than 20
   sites = sites[sites$depth >= minimumDepth & sites$depth <= maximumDepth,]
+  sites$depth <- NULL
+  
+  return(sites)
+}
 
+
+##-----------------------------------------------------------
+## parse a VCF file, extract SNP positions, depth, and
+## allelic fraction
+parseSamtoolsVcf <- function(file, minimumDepth, maximumDepth){
+  #only read the columns we need
+  sites = read.delim(file,header=F,quote="",comment.char="#", sep="\t",colClasses=c("character","integer",rep("NULL",5),"character","NULL","NULL"))
+    
+  names(sites) = c("chr","st","info")
+  sites$vafs = as.numeric(str_replace(str_extract(sites$info,"AF1=[0-9.]+"),"AF1=",""))
+    
+  ## this would allow us to use DP4 field, which is slightly more accurate than DP, 
+  ## but at the cost of 50x slower exection. We'll use the fast way for now.
+  ## depths = unname(sapply(str_replace(str_extract(sites[,3],"DP4=[0-9,]+"),"DP4=",""),
+  ##                        function(x){sum(scan(text=x,,sep=",",quiet=TRUE))}))
+  
+  depths = as.numeric(str_replace(str_extract(sites$info,"DP=[0-9]+"),"DP=",""))
+
+  #subset by depth
+  sites=sites[(depths >= minimumDepth & depths <= maximumDepth),]
+  
+  sites$info <- NULL
+    
+  return(sites)
+}
+
+
+
+
+
+##-----------------------------------------------------------
+## read in a samtools pileup file (or VCF), calculate the VAF of each
+## SNP, then find regions where the VAF is reasonably stable
+## at 2x, 3x, or 4x. Use these regions to calculate the depth
+## that is equivalent to CN-neutral regions
+##
+cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle=3, minimumDepth=20, maximumDepth=100, plot=FALSE, samtoolsFileFormat="mpileup"){
+
+  if(verbose){ print("reading in samtools file")};
+
+  #read in the sites
+  sites = c();  
+  if(samtoolsFileFormat=="mpileup"){
+    sites = parseSamtoolsMpileup(samtoolsFile, minimumDepth, maximumDepth)
+  } else if (samtoolsFileFormat=="vcf"){
+    sites = parseSamtoolsVcf(samtoolsFile, minimumDepth, maximumDepth)
+  } else {
+    stop(paste("unrecognized samtools file format - expected 'mpileup' or 'vcf'"))
+  }
+
+  
   ##throw out sites with vaf less than 15%
   ##too much noise around the margin there
   sites = sites[sites$vaf >= 15,]
@@ -49,6 +95,7 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
   if(verbose){
     print("finding clean windows of CN 2x, 3x, 4x")
   }
+
 
   doCalc <- function(rdo, snpBinSize, peakWiggle, chr, hetsites, homsites, plot){
     chrLen = getChrLength(chr,rdo@entrypoints)
