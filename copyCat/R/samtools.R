@@ -40,7 +40,7 @@ parseSamtoolsVcf <- function(file, minimumDepth, maximumDepth){
   sites = read.delim(file,header=F,quote="",comment.char="#", sep="\t",colClasses=c("character","integer",rep("NULL",5),"character","NULL","NULL"))
     
   names(sites) = c("chr","st","info")
-  sites$vafs = as.numeric(str_replace(str_extract(sites$info,"AF1=[0-9.]+"),"AF1=",""))
+  sites$vafs = as.numeric(str_replace(str_extract(sites$info,"AF1=[0-9.]+"),"AF1=",""))*100
     
   ## this would allow us to use DP4 field, which is slightly more accurate than DP, 
   ## but at the cost of 50x slower exection. We'll use the fast way for now.
@@ -69,6 +69,8 @@ parseSamtoolsVcf <- function(file, minimumDepth, maximumDepth){
 ##
 cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle=3, minimumDepth=20, maximumDepth=100, plot=FALSE, samtoolsFileFormat="mpileup"){
 
+  library('stringr')
+
   if(verbose){ print("reading in samtools file")};
 
   #read in the sites
@@ -81,8 +83,8 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
     stop(paste("unrecognized samtools file format - expected 'mpileup' or 'vcf'"))
   }
 
-  
-  ##throw out sites with vaf less than 15%
+
+    ##throw out sites with vaf less than 15%
   ##too much noise around the margin there
   sites = sites[sites$vaf >= 15,]
 

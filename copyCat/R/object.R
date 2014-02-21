@@ -3,7 +3,6 @@ library('foreach')
 library('doMC')
 #registerDoMC()
 library('IRanges')
-library('stringr')
 
 ##-------------------------------------------------
 ## Set up an object to hold the data,
