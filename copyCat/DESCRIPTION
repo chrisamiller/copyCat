@@ -7,5 +7,5 @@ Description: Uses the depth of short reads in windows across the genome to
 Maintainer: Chris Miller <chrisamiller@gmail.com>
 LazyLoad: yes
 License: Apache License 2.0 | file LICENSE
-Depends: methods, foreach, doMC, IRanges, DNAcopy
-Packaged: 2014-02-20 02:00:35 PM; cmiller
+Depends: methods, foreach, doMC, IRanges, DNAcopy, stringr
+Packaged: 2014-02-21 01:22:27 PM; cmiller
