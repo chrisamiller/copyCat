@@ -3,16 +3,16 @@
 ## each bin.
 getReadDepth <- function(rdo){
   ##options to run bam-window from this package could go here
-  
+
   rdo = getWindowBins(rdo)
-  
+
   ## if(verbose){
   ##   cat("Binning End:",date(),"\n")
   ##   cat("-------------------------------\n")
   ##   ##plot distribution
   ##   ##plotDist(rdo, filename="output/dist.rawreads.pdf")
   ## }
-  
+
   return(rdo)
 }
 
@@ -28,14 +28,14 @@ getWindowBins <- function(rdo){
   if(verbose){
     print(paste("inferred bin size: ", rdo@params$binSize))
   }
-  
+
   ##remove any columns with no data - all zeros
   for(i in names(winds)){
     if(sum(as.numeric(winds[[i]]))==0){
       winds[[i]] <- NULL
     }
   }
-  
+
   ##sanity check
   if(length(winds) < 3){
     print("ERROR: the input file contains no bins with reads. Cannot continue")
@@ -46,10 +46,12 @@ getWindowBins <- function(rdo){
   ##if no per-lib information, can't do per-lib correction
   if((names(winds)[3] == "Counts") & (params$perLibrary == TRUE)){
     print("WARNING: bins file wasn't created with per-library option, will not perform per-library correction")
+    params$perLibrary = FALSE;
   }
   ##ditto for per-read-length info
   if((names(winds)[3] == "Counts") & (params$perReadLength == TRUE)){
     print("WARNING: bins file wasn't created with per-read-length option, will not perform per-read-length correction")
+    params$perReadLength = FALSE;
   }
 
   ## make sure we have a valid readlength from either the header or the params
@@ -57,108 +59,108 @@ getWindowBins <- function(rdo){
     splitname = strsplit(names(winds)[i],".",fixed=T)[[1]]
     if(is.na(suppressWarnings(as.integer(splitname[length(splitname)])))){
       if(params$readLength < 1){ #is set to zero as default
-        print("Can't infer read length from bin file headers")
+        print("Can't infer read length from window file headers")
         print("and read length was not specified in setParams()")
         print("correct one of these to proceed")
         stop()
       }
     }
   }
-  
-  
+
+
   ##create a list of all the libraries and read lengths
-  dataColNames = names(winds)[3:length(winds)]
-  readInfo = NULL;
-  for(i in 3:length(winds)){
-    splitname = strsplit(names(winds)[i],".",fixed=T)[[1]]
+  createReadInfo <- function(winds, rdo){
+    dataColNames = names(winds)[3:length(winds)]
+    readInfo = NULL;
+    for(i in 3:length(winds)){
+      splitname = strsplit(names(winds)[i],".",fixed=T)[[1]]
 
-    ##if readlength is specified in col name
-    rl = c()
-    if(!(is.na(suppressWarnings(as.integer(splitname[length(splitname)]))))){
-      rl = as.integer(splitname[length(splitname)])
-    } else { ##grab readlength from params
-      rl = params$readLength
+      ##if readlength is specified in col name
+      rl = c()
+      if(!(is.na(suppressWarnings(as.integer(splitname[length(splitname)]))))){
+        rl = as.integer(splitname[length(splitname)])
+      } else { ##grab readlength from params
+        rl = rdo@params$readLength
+      }
+
+      df = data.frame(column=i,
+        lib=paste(splitname[1:(length(splitname)-1)],collapse="."),
+        readlength=rl,
+        numreads=sum(winds[,i]))
+
+      if(is.null(readInfo)){
+        readInfo <- df
+      } else {
+        readInfo <- rbind(readInfo,df )
+      }
     }
-    
-    df = data.frame(column=i,
-      lib=paste(splitname[1:(length(splitname)-1)],collapse="."),      
-      readlength=rl,
-      numreads=sum(winds[,i]))
-    
-    if(is.null(readInfo)){
-      readInfo <- df
-    } else {
-      readInfo <- rbind(readInfo,df )
-    }
+    return(readInfo)
   }
-  rdo@readInfo=readInfo
+
+  rdo@readInfo = createReadInfo(winds,rdo)
+
+
+  ##we could have multiple libraries with the same read lengths
+  ##if we aren't doing per-library correction, merge them
+  mergeLibraries <- function(winds,rdo){
+    torm=c()
+    for(i in names(table(rdo@readInfo$readlength))){
+      colsToMerge=rdo@readInfo[rdo@readInfo$readlength==i,]$column
+      if(length(colsToMerge) > 1){
+        newCol=rowSums(winds[,colsToMerge])
+        winds=cbind(winds,newCol)
+        names(winds)[length(winds)] = paste("Counts.",i,sep="")
+        torm = c(torm, colsToMerge)
+      }
+    }
+    if(length(torm)>1){
+      for(j in rev(sort(torm))){
+        winds[[j]] <- NULL
+      }
+    }
+    return(winds)
+  }
+
+  ## we could have multiple read lengths from the same library
+  ## if we aren't doing per-readlength correction, merge them
+  mergeReadLengths <- function(winds,rdo){
+    torm=c()
+    for(i in names(table(rdo@readInfo$lib))){
+      colsToMerge=rdo@readInfo[rdo@readInfo$lib==i,]$column
+      if(length(colsToMerge) > 1){
+        newCol=rowSums(winds[,colsToMerge])
+        winds=cbind(winds,newCol)
+        names(winds)[length(winds)] = paste(i,".lib",sep="")
+        torm = c(torm, colsToMerge)
+      }
+    }
+    if(length(torm)>1){
+      for(j in rev(sort(torm))){
+        winds[[j]] <- NULL
+      }
+    }
+    return(winds)
+  }
+
+
+
   ##if we're not doing per-library or per-readlength correction,
-  ##just merge all of the reads into one column.
-  if(length(winds) == 3){
-    names(winds) = c("Chr","Start",paste("Counts.",rl,sep=""))
-    rdo@readInfo$lib = c("Counts")
-
-  } else { #assuming > 3 cols
-
-    if( (!(params$perLibrary) & !(params$perReadLength))){
-      winds = cbind(winds[,1:2],rowSums(winds[,3:length(winds)]))
-      names(winds) = c("Chr","Start","Counts")
-    } else {
-      
-      ##we could have multiple libraries with the same read lengths
-      ##if we aren't doing per-library correction, merge them
-      if(!(params$perLibrary)){
-        torm=c()
-        for(i in names(table(rdo@readInfo$readlength))){      
-          colsToMerge=rdo@readInfo[rdo@readInfo$readlength==i,]$column
-          if(length(colsToMerge) > 1){
-            newCol=rowSums(winds[,colsToMerge])
-            winds=cbind(winds,newCol)
-            names(winds)[length(winds)] = paste("Counts.",i,sep="")
-            torm = c(torm, colsToMerge)
-          }
-      }
-        for(j in rev(sort(torm))){
-          winds[[j]] <- NULL
-        }
-        
-        ##update the readinfo table
-        rdo@readInfo <- rdo@readInfo[!(rdo@readInfo$readlength==i),]
-        rdo@readInfo <- rbind(rdo@readInfo, data.frame(column=length(winds),
-                                                       lib=paste("rd.Counts.",i,sep=""),
-                                                       readlength=i,
-                                                       numreads=sum(winds[,length(winds)])))
-
-        torm=c()
-        for(i in names(table(rdo@readInfo$lib))){      
-          colsToMerge=rdo@readInfo[rdo@readInfo$lib==i,]$column
-          if(length(colsToMerge) > 1){
-            newCol=rowSums(winds[,colsToMerge])
-            winds=cbind(winds,newCol)
-            names(winds)[length(winds)] = paste(i,".lib",sep="")
-            torm = c(torm, colsToMerge)
-          }
-        }
-        for(j in rev(sort(torm))){
-          winds[[j]] <- NULL
-        }
-        
-        ##update the readinfo table
-        rdo@readInfo <- rdo@readInfo[!(rdo@readInfo$readlength==i),]
-        rdo@readInfo <- rbind(rdo@readInfo, data.frame(column=length(winds),
-                                                       lib=paste("rd.Counts.",i,sep=""),
-                                                       readlength=i,
-                                                       numreads=sum(winds[,length(winds)])))      
-      }
-    }
+  ##just merge all of the reads appropriately
+  if(!(params$perLibrary)) {
+    winds = mergeLibraries(winds, rdo)
+    rdo@readInfo = createReadInfo(winds,rdo)
+  }
+  if(!(params$perLibrary)) {
+    winds = mergeReadLengths(winds,rdo)
+    rdo@readInfo = createReadInfo(winds,rdo)
   }
 
-  ##TODO - handle the case where there are multiple read lengths that need to be merged
-  
+
+
   ##add the data to the rd object
   for(i in 1:length(rdo@entrypoints$chr)){
     chr = rdo@entrypoints$chr[i]
-    
+
     tmp = data.frame(winds[which(winds[,1]==chr),1:length(winds)])
     names(tmp) = paste("rd.",names(tmp),sep="")
 
@@ -171,7 +173,7 @@ getWindowBins <- function(rdo){
     }
   }
 
-  
+
   #infer bin size and calculate overall medan
   med = c()
   if(length(winds) > 3){
@@ -179,7 +181,7 @@ getWindowBins <- function(rdo){
   } else {
     med = median(winds[,3],na.rm=T)
   }
-  
+
   rdo@binParams <- data.frame(binSize = winds[2,2]-winds[1,2],
                               med = med,
                               numLibs=length(names(tmp))-2
