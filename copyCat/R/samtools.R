@@ -100,7 +100,7 @@ cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle
       print(paste(recognizedFormats,sep="\n"))
       stop("unable to continue");
     }
-    print(paste("inferred that samtools file format is:",samtoolsFile))
+    print(paste("inferred that samtools file format is:",samtoolsFileFormat))
   }
   
   #read in the sites
