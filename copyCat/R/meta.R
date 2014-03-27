@@ -6,7 +6,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
                                     binSize=0,  #0 means let copyCat choose (or infer from bins file)
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0,
-                                    samtoolsFile=NULL, samtoolsFileFormat="mpileup",
+                                    samtoolsFile=NULL, samtoolsFileFormat="10colPileup",
                                     peakwiggle=3, snpBinSize=1000000,
                                     verbose=TRUE, purity=1){
 
@@ -59,7 +59,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
                                     gcWindowSize=100, fdr=0.01, perLibrary=TRUE,
                                     perReadLength=TRUE, readLength=0, verbose=TRUE,
                                     outputSingleSample=FALSE, tumorSamtoolsFile=NULL,
-                                    normalSamtoolsFile=NULL, samtoolsFileFormat="mpileup",
+                                    normalSamtoolsFile=NULL, samtoolsFileFormat="10colPileup",
                                     dumpBins=FALSE, minWidth=3,
                                     doGcCorrection=TRUE, rDataFile=NULL,
                                     minMapability=0.60, purity=1, maxGapOverlap=0.75){

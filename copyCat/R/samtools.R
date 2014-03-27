@@ -1,8 +1,8 @@
 ##-----------------------------------------------------------
 ## parse a 10-col mpileup file to extract SNP positions, depth
 ## and allelic fraction.
-parseSamtoolsMpileup <- function(file, minimumDepth, maximumDepth){
-  ## read in 10-col pileup file, grab only the pieces we need.
+parseSamtools10col <- function(file, minimumDepth, maximumDepth){
+  ## read in 10-col pileup+ file, grab only the pieces we need.
   sites = read.delim(file,header=F,quote="")
   if(length(sites) < 10){
     print("expecting 10-column samtools pileup file - this file has less than 10 columns")
@@ -36,7 +36,8 @@ parseSamtoolsMpileup <- function(file, minimumDepth, maximumDepth){
 ## parse a VCF file, extract SNP positions, depth, and
 ## allelic fraction
 parseSamtoolsVcf <- function(file, minimumDepth, maximumDepth){
-  #only read the columns we need
+  #only read the columns we need (chr, pos, info)
+  #assumes DP=\d+ is present in the info field
   sites = read.delim(file,header=F,quote="",comment.char="#", sep="\t",colClasses=c("character","integer",rep("NULL",5),"character","NULL","NULL"))
     
   names(sites) = c("chr","st","info")
@@ -59,6 +60,23 @@ parseSamtoolsVcf <- function(file, minimumDepth, maximumDepth){
 
 
 
+##-----------------------------------------------------------
+## infer the format of the samtools file
+## 
+inferSamtoolsFormat <- function(sfile){
+  a = scan(file=sfile, sep="\n", nlines=10, what="character",quiet=T)
+  if(grepl("fileformat=VCF",a[1],fixed=T)){
+    return("VCF");
+  }
+  if(sum(grepl("##INFO",a,fixed=T)) > 0){
+    return("VCF");
+  }
+  if(length(strsplit(a[1],"\t")[[1]]) == 10){
+    return("10colPileup")
+  }
+  return("unknown")
+}
+
 
 
 ##-----------------------------------------------------------
@@ -67,24 +85,39 @@ parseSamtoolsVcf <- function(file, minimumDepth, maximumDepth){
 ## at 2x, 3x, or 4x. Use these regions to calculate the depth
 ## that is equivalent to CN-neutral regions
 ##
-cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle=3, minimumDepth=20, maximumDepth=100, plot=FALSE, samtoolsFileFormat="mpileup"){
+cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle=3, minimumDepth=20, maximumDepth=100, plot=FALSE, samtoolsFileFormat="10colPileup"){
 
   library('stringr')
 
-  if(verbose){ print("reading in samtools file")};
-
+  #make sure we have a valid format
+  recognizedFormats = c("10colPileup","VCF");  
+  if(!(samtoolsFileFormat %in% recognizedFormats)){
+    print(paste("unrecognized samtools file format given:",samtoolsFileFormat))
+    print("attempting to infer the format from the header of the file")
+    samtoolsFileFormat = inferSamtoolsFormat(samtoolsFile);
+    if(!(samtoolsFileFormat %in% recognizedFormats)){
+      print("unable to infer samtools format. Please try again providing one of the following recognized formats")
+      print(paste(recognizedFormats,sep="\n"))
+      stop("unable to continue");
+    }
+    print(paste("inferred that samtools file format is:",samtoolsFile))
+  }
+  
   #read in the sites
-  sites = c();  
-  if(samtoolsFileFormat=="mpileup"){
-    sites = parseSamtoolsMpileup(samtoolsFile, minimumDepth, maximumDepth)
-  } else if (samtoolsFileFormat=="vcf"){
+  sites = c();
+  if(verbose){ print("reading in samtools file")};
+  
+  if(samtoolsFileFormat=="10colPileup"){
+    sites = parseSamtools10col(samtoolsFile, minimumDepth, maximumDepth)
+  } else if (samtoolsFileFormat=="VCF"){
     sites = parseSamtoolsVcf(samtoolsFile, minimumDepth, maximumDepth)
   } else {
-    stop(paste("unrecognized samtools file format - expected 'mpileup' or 'vcf'"))
+    stop(paste("ERROR: undefined samtools file format:",samtoolsFileFormat))
   }
 
 
-    ##throw out sites with vaf less than 15%
+
+  ##throw out sites with vaf less than 15%
   ##too much noise around the margin there
   sites = sites[sites$vaf >= 15,]
 
