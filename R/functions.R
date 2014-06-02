@@ -436,7 +436,7 @@ replaceReadCounts <- function(rdo,rdo2){
 ## find the appropriate annotations to use with this data
 ## if it doesn't exist, warn the user
 ##
-getAnnoDir <- function(annodir, readlength, tolerance=5){
+getAnnoDir <- function(annodir, readlength, tolerance=10){
   idealDir = paste(annodir,"/readlength.",readlength,sep="")
   if(file.exists(idealDir)){
     return(idealDir)
