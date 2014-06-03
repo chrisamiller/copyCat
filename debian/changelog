@@ -1,3 +1,17 @@
+r-cran-copycat (1.6-7) lucid; urgency=low
+
+  * bumping version number to resolve conflict
+
+ -- Chris Miller <cmiller@genome.wustl.edu>  Mon, 3 Jun 2014 11:07:00 -0500
+
+
+r-cran-copycat (1.6-6) lucid; urgency=low
+
+  * relax constraints for annotation read length matching
+
+ -- Chris Miller <cmiller@genome.wustl.edu>  Mon, 2 Jun 2014 11:07:00 -0500
+
+
 r-cran-copycat (1.6-5) lucid; urgency=low
 
   * automatically infer samtools file format when none is provided
