@@ -288,9 +288,14 @@ removeGapSpanningSegments <- function(segs,rdo,maxOverlap=0.75){
 ## for real events.
 removeCoverageArtifacts <- function(segs,rdo){
   count = length(segs[,1]);
+  if(count < 1){ #if no segs are input, can't do any filtering!
+    return(segs)
+  }
 
-  getMedianDepth <- function(df, chr, st, sp, binsize){
+  getMedianDepth <- function(df, chr, st, sp){
     d = df[which(df$chr==chr & df$pos>=st & df$pos<=sp),]
+    print(head(d))
+    
     ##take missing (low-map) bins into account here:
     depths = d$score
     expectedWinds=round(((sp-st)+1)/rdo@params$binSize)
