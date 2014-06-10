@@ -294,7 +294,6 @@ removeCoverageArtifacts <- function(segs,rdo){
 
   getMedianDepth <- function(df, chr, st, sp){
     d = df[which(df$chr==chr & df$pos>=st & df$pos<=sp),]
-    print(head(d))
     
     ##take missing (low-map) bins into account here:
     depths = d$score
