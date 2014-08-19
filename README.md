@@ -1,6 +1,6 @@
-BB0;95;cThe copyCat package for R can detect somatic copy number aberrations by measuring the depth of coverage obtained by massively parallel sequencing of the genome. It achiev0;95;ces higher accuracy than many other packages, and runs faster by utilizing multi-core architectures to parallelize the processing of these large data sets.
+The copyCat package for R can detect somatic copy number aberrations by measuring the depth of coverage obtained by massively parallel sequencing of the genome. It achiev0;95;ces higher accuracy than many other packages, and runs faster by utilizing multi-core architectures to parallelize the processing of these large data sets.
 
-copyCat generally takes in paired samples (tumor and normal) and can utilize mutation frequency information from samtools to help correct for purity and ploidy. This package also includes a method for effectively increasing the resolution obtained from low-coverage experiments by utilizing breakpoint information from paired end sequencing to do positional refinement.  It's primary input comes from running bam-window (https://github.com/genome-vendor/bam-window) on the tumor and normal bam files. 
+copyCat takes in paired samples (tumor and normal) and can utilize mutation frequency information from samtools to help correct for purity and ploidy. This package also includes a method for effectively increasing the resolution obtained from low-coverage experiments by utilizing breakpoint information from paired end sequencing to do positional refinement.  It's primary input comes from running bam-window (https://github.com/genome-vendor/bam-window) on the tumor and normal bam files. 
 
 #Installation
 
@@ -41,5 +41,8 @@ CopyCat requires mapability and gc-content information that is dependent on the 
 - [read length 75](https://dl.dropboxusercontent.com/u/21436449/readlength.75.tar.gz)
 - [read length 85](https://dl.dropboxusercontent.com/u/21436449/readlength.85.tar.gz)
 
-
-The copyCat package is loosely based on [readDepth](https://code.google.com/p/readdepth/), a tool by the same author. 
+#Notes
+- The copyCat package is loosely based on [readDepth](https://code.google.com/p/readdepth/), a tool by the same author. 
+- It does support single-sample CN calling using the "runSingleSampleAnalysis" function.
+- It is not specific to the human genome. To create your own annotation files, use the above as a template, and fill in your own annoations for mapability (using self-aligments with your aligner of choice) and GC-content (for reads starting in each 100bp window).
+- a window size of 10k is a reasonable default that balances specificity and sensitivity
