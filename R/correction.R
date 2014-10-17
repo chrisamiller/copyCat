@@ -11,11 +11,15 @@ gcCorrect <- function(rdo, meth=FALSE, outlierPercentage=0.01, resolution=0.001)
     if(verbose){
       print(paste("calculating GC content for read length",len,date(),sep=" "))
     }
-    
-    rdo2 = subsetByReadLength(rdo,len)
+
+    rdo2=NULL
+    if(rdo@params$perReadLength==TRUE){
+      rdo2 = subsetByReadLength(rdo,len)
+    } else {
+      rdo2=rdo
+    }
     rdo2@params$annotationDirectory = getAnnoDir(rdo2@params$annotationDirectory, len)
 
-    
     ##figure out the avg num of reads for each level of GC content
     mcoptions <- list(preschedule = FALSE)
     chr = NULL;
@@ -76,7 +80,12 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
       print(paste("calculating mapability content for read length",len,date(),sep=" "))
     }
 
-    rdo2 = subsetByReadLength(rdo,len)
+    rdo2=NULL
+    if(rdo@params$perReadLength==TRUE){
+      rdo2 = subsetByReadLength(rdo,len)
+    } else {
+      rdo2=rdo
+    }
     rdo2@params$annotationDirectory = getAnnoDir(rdo2@params$annotationDirectory, len)
 
     ##figure out the avg num of reads for each level of mapability
@@ -84,7 +93,6 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
     mapBins = foreach(chr=rdo2@entrypoints$chr, .combine="combineBins",.options.multicore=mcoptions) %dopar% {
       binMap(rdo2, chr, len)
     }
-    
     for(i in rdo2@entrypoints$chr){
       rdo2@chrs[[i]] = cbind(rdo2@chrs[[i]],mapBins[[i]])
     }
@@ -104,7 +112,7 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
     if(skipCorrection==FALSE){
       ##finally, do the loess correction
       if(verbose){cat("Correcting read depth for mapability bias:  ",date(),"\n")}
-      
+
       ##for each library
       for(i in 1:(length(names(rdo2@chrs[[1]]))-1)){
         if(verbose){cat("correcting library ",i,"\n");}
@@ -114,7 +122,7 @@ mapCorrect <- function(rdo, outlierPercentage=0.01, minMapability=0.60, resoluti
           rdo2@chrs[[j]][[name]]= mapAdj[[j]]
         }
       }
-    } 
+    }
 
     ##merge back into rdo
     rdo = replaceReadCounts(rdo,rdo2)
@@ -200,7 +208,7 @@ methAdjust <- function(rdo,chr){
 
 binGC <- function(rdo, chr, readlength){
   binNum = length(rdo@chrs[[chr]][,1])
-  len = getChrLength(chr,rdo@params$entrypoints)
+  len = getChrLength(chr,rdo@entrypoints)
 
   ## read in all gc windows
   gc = scan(gzfile(paste(rdo@params$annotationDirectory,"/gcWinds/",chr,".gc.gz",sep="")), what=0, quiet=TRUE)
@@ -339,7 +347,7 @@ loessCorrect <- function(rdo, libNum, readLength, libName, outlierPercentage=0.0
   corrBins = c();
   if(type=="gc"){
     chr = NULL
-    corrBins = foreach(chr=rdo@entrypoints$chr, .combine="combinePercBins") %dopar% {    
+    corrBins = foreach(chr=rdo@entrypoints$chr, .combine="combinePercBins") %dopar% {
       makeCorrBins(rdo@chrs[[chr]],libNum,corrResolution,chr,type)
     }
   } else { #use median
@@ -363,7 +371,7 @@ loessCorrect <- function(rdo, libNum, readLength, libName, outlierPercentage=0.0
   reads = nonNAbins$avgreads
   numreads = nonNAbins$numreads
   reads.loess <- loess(reads ~ val, span=0.75, data.frame(reads=reads, val=val))
-  
+
   ## do adjustment
   bmed=balancedCenter(reads.loess$fitted,numreads)
 #  bmed=rdo@binParams$med
@@ -531,7 +539,7 @@ makeCorrBins <- function(bin,libNum,windSize,chr,type){
   }
 
   names(bin)[libNum] = "count"
-  
+
   bin = cbind(bin,zbin=(round(bin[[type]]/windSize)+1))
   for(i in 1:length(myBin)){
     zmean[[i]] = mean(bin[bin$zbin == i,]$count, na.rm=T)
@@ -546,7 +554,7 @@ makeCorrBins <- function(bin,libNum,windSize,chr,type){
 ##
 makeCorrBinsMedian <- function(rdo,libNum,windSize,type){
   bins = makeMapDf(rdo,libNum)
-  
+
   ##create vectors for percentages and number of reads
   myBin <- c()
   zmed <- c()
