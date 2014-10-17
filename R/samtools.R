@@ -85,7 +85,7 @@ inferSamtoolsFormat <- function(sfile){
 ## at 2x, 3x, or 4x. Use these regions to calculate the depth
 ## that is equivalent to CN-neutral regions
 ##
-cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle=3, minimumDepth=20, maximumDepth=100, plot=FALSE, samtoolsFileFormat="10colPileup"){
+cnNeutralDepthFromHetSites <- function(rdo, samtoolsFile, snpBinSize, peakWiggle=3, minimumDepth=20, maximumDepth=100, plot=FALSE, samtoolsFileFormat="10colPileup",verbose=FALSE){
 
   library('stringr')
 
