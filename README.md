@@ -34,7 +34,7 @@ copyCat takes in paired samples (tumor and normal) and can utilize mutation freq
 
 
 #Annotations
-CopyCat requires mapability and gc-content information that is dependent on the read-lengths of your data. (It accepts +/- 10bp as reasonable approximations) Annotation files that cover common read lengths on human build37 are hosted at: (https://xfer.genome.wustl.edu/gxfer1/project/cancer-genomics/copyCat/)[https://xfer.genome.wustl.edu/gxfer1/project/cancer-genomics/copyCat/]
+CopyCat requires mapability and gc-content information that is dependent on the read-lengths of your data. (It accepts +/- 10bp as reasonable approximations) Annotation files that cover common read lengths on human build37 are hosted at: [https://xfer.genome.wustl.edu/gxfer1/project/cancer-genomics/copyCat/](https://xfer.genome.wustl.edu/gxfer1/project/cancer-genomics/copyCat/)
 
 #Notes
 - The copyCat package is loosely based on [readDepth](https://code.google.com/p/readdepth/), a tool by the same author. 
