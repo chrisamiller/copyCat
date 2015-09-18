@@ -1,3 +1,10 @@
+r-cran-copycat (1.6-9) lucid; urgency=low
+
+  * per-readlength=false handled correctly, pass verbose arg to samtools functions
+
+ -- Chris Miller <cmiller@genome.wustl.edu>  Mon, 17 Oct 2014 09:37:00 -0500
+
+
 r-cran-copycat (1.6-8) lucid; urgency=low
 
   * fix for edge case when no segments are detected

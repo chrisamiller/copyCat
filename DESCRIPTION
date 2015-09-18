@@ -8,4 +8,4 @@ Maintainer: Chris Miller <chrisamiller@gmail.com>
 LazyLoad: yes
 License: Apache License 2.0 | file LICENSE
 Depends: methods, foreach, doMC, IRanges, DNAcopy, stringr
-Packaged: 2014-10-15 12:25:45 PM; cmiller
+Packaged: 2014-10-17 09:34:14 AM; cmiller
