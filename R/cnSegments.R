@@ -237,7 +237,7 @@ trimSegmentEnds <- function(segs,rdo){
 ##-----------------------------------------------
 ## remove segments that overlap at least n% with a reference assembly gap
 ##
-removeGapSpanningSegments <- function(segs,rdo,maxOverlap=0.75){
+removeGapSpanningSegments <- function(segs,rdo,maxOverlap=0.75,gapExpansion=1){
   count = length(segs[,1]);
 
   if(!(file.exists(paste(rdo@params$annotationDirectory,"/gaps.bed",sep="")))){
@@ -246,8 +246,19 @@ removeGapSpanningSegments <- function(segs,rdo,maxOverlap=0.75){
     return(segs)
   }
 
-  gaps = read.table(paste(rdo@params$annotationDirectory,"/gaps.bed",sep=""))
-
+  gaps = read.table(paste(rdo@params$annotationDirectory,"/gaps.bed",sep=""),stringsAsFactors=F)
+  
+  #expand the gaps to catch adjacent reads - especially useful for filtering near centromeres in single-sample mode
+  for(i in 1:length(gaps[,1])){
+    span = gaps[i,3]-gaps[i,2]
+    pad = ((span*gapExpansion)-span)/2
+    gaps[i,2]=gaps[i,2]-pad
+    gaps[i,3]=gaps[i,3]+pad
+    if(gaps[i,2]<1){
+      gaps[i,2]=1
+    }
+  }
+  
   #intersect each chromosome separately
   newsegs = foreach(chr=names(rdo@chrs), .combine="rbind") %do%{
 

@@ -10,7 +10,7 @@
   false-positive calls.
 }
 \usage{
-  removeGapSpanningSegments(segs,rdo,maxOverlap=0.75)
+  removeGapSpanningSegments(segs,rdo,maxOverlap=0.75,gapExpansion=1)
 }
 
 \arguments{
@@ -25,6 +25,12 @@
   }
   \item{maxOverlap}{
     if a segment overlaps at least this much with a gap, it will be removed.
+  }
+  \item{gapExpansion}{
+    fractional value that controls how far to expand gaps beyond the
+    input gap locations.  Example: a value of 1.2 would make the gap 20%
+    larger. This is useful in single-sample analysis when
+    centromere-adjacent regions tend to inappropriately pile up reads
   }
 }
 \value{
