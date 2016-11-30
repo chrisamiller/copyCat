@@ -151,7 +151,12 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   writeSegs(segs,rdo,"segs.paired.dat")
   writeSegs(alts,rdo,"alts.paired.dat")
 
+  #save image
+  if(!is.null(rDataFile)){
+    save.image(paste(outputDirectory,rDataFile,sep="/"))
+  }
 
+  
   if(outputSingleSample){
     ##segment the non-paired data using CBS
     segs = cnSegments(rdo2)
@@ -185,9 +190,5 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
 
   dumpParams(rdo)
   dumpParams(rdo2)
-
-  if(!is.null(rDataFile)){
-    save.image(paste(outputDirectory,rDataFile,sep=""))
-  }
   
 }

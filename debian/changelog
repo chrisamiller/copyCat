@@ -1,3 +1,9 @@
+r-cran-copycat (1.6-11) lucid; urgency=low
+
+  * factor mismatch issue resolved
+
+ -- Chris Miller <cmiller@genome.wustl.edu>  Mon, 30 Nov 2016 09:37:00 -0500
+
 r-cran-copycat (1.6-9) lucid; urgency=low
 
   * per-readlength=false handled correctly, pass verbose arg to samtools functions

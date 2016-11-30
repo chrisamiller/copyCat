@@ -30,11 +30,11 @@ getWindowBins <- function(rdo){
   }
 
   ##remove any columns with no data - all zeros
-  for(i in names(winds)){
-    if(sum(as.numeric(winds[[i]]))==0){
-      winds[[i]] <- NULL
-    }
-  }
+  ## for(i in names(winds)){
+  ##   if(sum(as.numeric(winds[[i]]))==0){
+  ##     winds[[i]] <- NULL
+  ##   }
+  ## }
 
   ##sanity check
   if(length(winds) < 3){
