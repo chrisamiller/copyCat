@@ -10,7 +10,7 @@
   false-positive calls.
 }
 \usage{
-  removeGapSpanningSegments(segs,rdo,maxOverlap=0.75)
+  removeGapSpanningSegments(segs,rdo,maxOverlap=0.75,gapExpansion=1.0)
 }
 
 \arguments{
@@ -25,6 +25,10 @@
   }
   \item{maxOverlap}{
     if a segment overlaps at least this much with a gap, it will be removed.
+  }
+  \item{gapExpansion}{
+    expand each gap feature by this fraction before doing gap
+  filtering. A value of 1.3 would expand each gap by 30%.
   }
 }
 \value{

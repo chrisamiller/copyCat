@@ -237,7 +237,7 @@ trimSegmentEnds <- function(segs,rdo){
 ##-----------------------------------------------
 ## remove segments that overlap at least n% with a reference assembly gap
 ##
-removeGapSpanningSegments <- function(segs,rdo,maxOverlap=0.75){
+removeGapSpanningSegments <- function(segs,rdo,maxOverlap=0.75,gapExpansion=1.0){
   count = length(segs[,1]);
 
   if(!(file.exists(paste(rdo@params$annotationDirectory,"/gaps.bed",sep="")))){
@@ -247,7 +247,17 @@ removeGapSpanningSegments <- function(segs,rdo,maxOverlap=0.75){
   }
 
   gaps = read.table(paste(rdo@params$annotationDirectory,"/gaps.bed",sep=""))
-
+  #expand gaps if necessary
+  if(gapExpansion!=1){
+    print(paste("Using gap expansion of ",gapExpansion))
+    sizes=gaps[,3]-gaps[,2]
+    exp=round(((sizes*gapExpansion)-sizes)/2)
+    gaps[,2] = gaps[,2]-exp
+    gaps[,3] = gaps[,3]+exp
+    gaps[(gaps[,2]<0),2]=0 #no negative coords    exp=round(((sizes*gapExpansion)-sizes)/2)
+  }
+  
+  
   #intersect each chromosome separately
   newsegs = foreach(chr=names(rdo@chrs), .combine="rbind") %do%{
 
