@@ -2,14 +2,14 @@ The copyCat package for R can detect somatic copy number aberrations by measurin
 
 copyCat takes in paired samples (tumor and normal) and can utilize mutation frequency information from samtools to help correct for purity and ploidy. This package also includes a method for effectively increasing the resolution obtained from low-coverage experiments by utilizing breakpoint information from paired end sequencing to do positional refinement.  It's primary input comes from running bam-window (https://github.com/genome-vendor/bam-window) on the tumor and normal bam files. 
 
-#Installation
+# Installation
 
     #install devtools if you don't have it already
     install.packages("devtools")
     library(devtools)
     install_github("chrisamiller/copycat")
 
-#Usage
+# Usage
     library(copyCat)
     #The most convenient way to run copyCat is through the functions in meta.R. 
     #For a paired tumor/normal sample, this looks something like this:
@@ -33,11 +33,11 @@ copyCat takes in paired samples (tumor and normal) and can utilize mutation freq
                         tumorSamtoolsFile="tumor_mpileup")  #uses the VAFs of mpileup SNPs to infer copy-neutral regions
 
 
-#Annotations
+# Annotations
 CopyCat requires mapability and gc-content information that is dependent on the read-lengths of your data. (It accepts +/- 10bp as reasonable approximations) Annotation files that cover common read lengths on human build37 are hosted at: [https://xfer.genome.wustl.edu/gxfer1/project/cancer-genomics/copyCat/](https://xfer.genome.wustl.edu/gxfer1/project/cancer-genomics/copyCat/)
 
-#Notes
+# Notes
 - The copyCat package is loosely based on [readDepth](https://code.google.com/p/readdepth/), a tool by the same author. 
 - It does support single-sample CN calling using the "runSingleSampleAnalysis" function.
-- It is not specific to the human genome. To create your own annotation files, use the above as a template, and fill in your own annoations for mapability (using self-aligments with your aligner of choice) and GC-content (for reads starting in each 100bp window).
-- a window size of 10k is a reasonable default that balances specificity and sensitivity
+- It is not specific to the human genome. To create your own annotation files, use the above as a template, and fill in your own annotaions for mapability (using self-aligments with your aligner of choice) and GC-content (for reads _starting_ in each 100bp window).
+- a window size of 10k is generally a reasonable default that balances specificity and sensitivity. (Specific applications may demand higher or lower sizes).
