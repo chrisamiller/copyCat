@@ -32,7 +32,7 @@ runSingleSampleAnalysis <- function(annotationDirectory, outputDirectory, inputF
   ##use the samtools file to get cn-neutral median read count
   if(!(is.null(samtoolsFile))){
     rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,samtoolsFile,1000000,
-      peakWiggle=3,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat)
+      peakWiggle=3,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat,verbose=verbose)
   } else {
     rdo@binParams$med = getMedianReadCount(rdo)
   }
@@ -119,14 +119,14 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
   ##tumor
   if(!(is.null(tumorSamtoolsFile))){
     rdo2@binParams$med = cnNeutralDepthFromHetSites(rdo2,tumorSamtoolsFile,2000000,
-      peakWiggle=4,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat)
+      peakWiggle=4,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat,verbose=verbose)
   } else {
     rdo2@binParams$med = getMedianReadCount(rdo2)
   }
   ##normal
   if(!(is.null(normalSamtoolsFile))){
     rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,2000000,
-      peakWiggle=4,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat)
+      peakWiggle=4,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat,verbose=verbose)
   } else {
     rdo@binParams$med = getMedianReadCount(rdo)
   }
@@ -173,7 +173,7 @@ runPairedSampleAnalysis <- function(annotationDirectory, outputDirectory, normal
     #normal
     if(!(is.null(normalSamtoolsFile))){
       rdo@binParams$med = cnNeutralDepthFromHetSites(rdo,normalSamtoolsFile,1000000,
-        peakWiggle=3,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat)
+        peakWiggle=3,plot=TRUE,samtoolsFileFormat=samtoolsFileFormat,verbose=verbose)
     } else {
       rdo@binParams$med = getMedianReadCount(rdo)
     }
